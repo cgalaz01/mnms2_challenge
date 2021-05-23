@@ -39,8 +39,9 @@ class DataGenerator():
         self.train_list = self.get_patient_list(self.train_directory)
         self.train_list = self.randomise_list(self.train_list, seed=4516, inplace=True)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=0.8)
-        
-    
+        self.test_list = self.get_patient_list(self.testing_directory)
+
+
     @staticmethod
     def get_patient_list(root_directory: Union[str, Path]) -> List[Path]:
         files = glob(os.path.join(root_directory, "**"))
@@ -105,45 +106,47 @@ class DataGenerator():
     
     
     @staticmethod
-    def generator(patient_directory) -> Tuple[Dict[str, np.numpy]]:
+    def generator(patient_directory) -> Tuple[Dict[str, np.ndarray]]:
         patient_data = DataGenerator.load_patient_data(patient_directory)
         
         for key, image in patient_data.items():
             patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
     
-        return patient_data
+    
+        output_data = []
+        output_data.append(({'input_sa': patient_data['sa_ed'],
+                             'input_la': patient_data['la_ed']},
+                            {'output_sa': patient_data['sa_ed_gt'],
+                             'output_la': patient_data['la_ed_gt']}))
+        output_data.append(({'input_sa': patient_data['sa_es'],
+                             'input_la': patient_data['la_es']},
+                            {'output_sa': patient_data['sa_es_gt'],
+                             'output_la': patient_data['la_es_gt']}))
+        return output_data
 
     
-    def train_generator(self) -> Tuple[Dict[str, np.numpy]]:
+    def train_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
             patient_data = self.generator(patient_directory)
             
-            yield ({'input_sa': patient_data['sa_ed'],
-                    'input_la': patient_data['la_ed']},
-                   {'output_sa': patient_data['sa_ed_gt'],
-                    'output_la': patient_data['la_ed_gt']})
-            
-            
-            yield ({'input_sa': patient_data['sa_es'],
-                    'input_la': patient_data['la_es']},
-                   {'output_sa': patient_data['sa_es_gt'],
-                    'output_la': patient_data['la_es_gt']})
+            yield patient_data[0]
+            yield patient_data[1]
         
     
-    def validation_generator(self) -> Tuple[Dict[str, np.numpy]]:
+    def validation_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
             patient_data = self.generator(patient_directory)
             
-            yield ({'input_sa': patient_data['sa_ed'],
-                    'input_la': patient_data['la_ed']},
-                   {'output_sa': patient_data['sa_ed_gt'],
-                    'output_la': patient_data['la_ed_gt']})
+            yield patient_data[0]
+            yield patient_data[1]
             
+    
+    def test_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+        for patient_directory in self.test_list:
+            patient_data = self.generator(patient_directory)
             
-            yield ({'input_sa': patient_data['sa_es'],
-                    'input_la': patient_data['la_es']},
-                   {'output_sa': patient_data['sa_es_gt'],
-                    'output_la': patient_data['la_es_gt']})
+            yield patient_data[0]
+            yield patient_data[1]
             
     
     
