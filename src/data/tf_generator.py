@@ -2,7 +2,7 @@ from typing import Union
 
 import tensorflow as tf
 
-from loader import DataGenerator
+from .loader import DataGenerator
 
 
 class TensorFlowDataGenerator():
