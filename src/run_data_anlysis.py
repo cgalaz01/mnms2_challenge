@@ -29,16 +29,51 @@ def print_spacing(spacing_list: List[List[float]]) -> None:
     print('Long-Axis in-plane pixel spacing:')
     print(Counter(spacing_list[2]))
     
+    
+def get_size(patient_data: Dict[str, sitk.Image],
+             size_list: List[List[float]]) -> List[List[float]]:
+    
+    sa_size = patient_data['sa_ed'].GetSize()
+    la_size = patient_data['la_ed'].GetSize()
+    
+    size_list[0].append(sa_size[0])
+    size_list[1].append(sa_size[1])
+    size_list[2].append(sa_size[2])
+    size_list[3].append(la_size[0])
+    size_list[4].append(la_size[1])
+    
+    return size_list
+
+
+def print_size(size_list: List[List[float]]) -> None:
+    print('Short-Axis x-size:')
+    print(Counter(size_list[0]))
+    
+    print('Short-Axis y-size:')
+    print(Counter(size_list[1]))
+    
+    print('Short-Axis z-size:')
+    print(Counter(size_list[2]))
+    
+    print('Long-Axis x-size:')
+    print(Counter(size_list[3]))
+    
+    print('Long-Axis y-size:')
+    print(Counter(size_list[4]))
+    
 
 def data_analysis() -> None:
     dg = DataGenerator()
     spacing_list = [[], [], []]
+    size_list = [[], [], [], [], []]
     for patient_directory in dg.train_list:
         patient_data = dg.load_patient_data(patient_directory)
         
         spacing_list = get_spacing(patient_data, spacing_list)
+        size_list = get_size(patient_data, size_list)
 
     print_spacing(spacing_list)
+    print_size(size_list)
     
 
 if __name__ == '__main__':
