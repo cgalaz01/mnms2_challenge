@@ -70,6 +70,7 @@ def data_analysis() -> None:
         patient_data = dg.load_patient_data(patient_directory)
         
         spacing_list = get_spacing(patient_data, spacing_list)
+        #patient_data = dg.preprocess_patient_data(patient_data, dg.target_spacing, dg.target_size)
         size_list = get_size(patient_data, size_list)
 
     print_spacing(spacing_list)

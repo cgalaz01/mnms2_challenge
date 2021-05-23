@@ -10,6 +10,8 @@ import numpy as np
 
 import SimpleITK as sitk
 
+from .preprocess import Preprocess
+
 
 class FileType(Enum):
     sa_ed = 'SA_ED'
@@ -40,6 +42,9 @@ class DataGenerator():
         self.train_list = self.randomise_list(self.train_list, seed=4516, inplace=True)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=0.8)
         self.test_list = self.get_patient_list(self.testing_directory)
+        
+        self.target_spacing = (1.25, 1.25, 10)
+        self.target_size = (256, 256, 17)
 
 
     @staticmethod
@@ -106,8 +111,30 @@ class DataGenerator():
     
     
     @staticmethod
-    def generator(patient_directory) -> Tuple[Dict[str, np.ndarray]]:
+    def preprocess_patient_data(patient_data: Dict[str, sitk.Image], spacing: Tuple[float],
+                                size: Tuple[int]) -> Dict[str, sitk.Image]:
+        patient_data['sa_ed'] = Preprocess().resample_image(patient_data['sa_ed'], spacing, size, is_label=False)
+        patient_data['sa_ed_gt'] = Preprocess().resample_image(patient_data['sa_ed_gt'], spacing, size, is_label=True)
+        patient_data['sa_es'] = Preprocess().resample_image(patient_data['sa_es'], spacing, size, is_label=False)
+        patient_data['sa_es_gt'] = Preprocess().resample_image(patient_data['sa_es_gt'], spacing, size, is_label=True)
+        
+        la_spacing = list(spacing)
+        la_spacing[2] = patient_data['la_ed'].GetSpacing()[2]
+        la_size = list(size)
+        la_size[2] = 1
+        patient_data['la_ed'] = Preprocess().resample_image(patient_data['la_ed'], la_spacing, la_size, is_label=False)
+        patient_data['la_ed_gt'] = Preprocess().resample_image(patient_data['la_ed_gt'], la_spacing, la_size, is_label=True)
+        patient_data['la_es'] = Preprocess().resample_image(patient_data['la_es'], la_spacing, la_size, is_label=False)
+        patient_data['la_es_gt'] = Preprocess().resample_image(patient_data['la_es_gt'], la_spacing, la_size, is_label=True)
+        
+        return patient_data
+        
+    
+    @staticmethod
+    def generator(patient_directory: Union[str, Path], spacing: Tuple[float],
+                  size: Tuple[int]) -> Tuple[Dict[str, np.ndarray]]:
         patient_data = DataGenerator.load_patient_data(patient_directory)
+        patient_data = DataGenerator.preprocess_patient_data(patient_data, spacing, size)
         
         for key, image in patient_data.items():
             patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
@@ -127,7 +154,9 @@ class DataGenerator():
     
     def train_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory,
+                                          self.target_spacing,
+                                          self.target_size)
             
             yield patient_data[0]
             yield patient_data[1]
@@ -135,7 +164,9 @@ class DataGenerator():
     
     def validation_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory,
+                                          self.target_spacing,
+                                          self.target_size)
             
             yield patient_data[0]
             yield patient_data[1]
@@ -143,7 +174,9 @@ class DataGenerator():
     
     def test_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory,
+                                          self.target_spacing,
+                                          self.target_size)
             
             yield patient_data[0]
             yield patient_data[1]
