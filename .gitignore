@@ -6,6 +6,7 @@ __pycache__/
 # Data
 data/training/
 data/validation/
+data_cache/
 
 # C extensions
 *.so

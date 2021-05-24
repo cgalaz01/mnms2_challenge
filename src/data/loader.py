@@ -32,6 +32,9 @@ class DataGenerator():
         expected_data_directory = os.path.join('..', '..', 'data')
         
         self.data_directory = Path(os.path.join(file_path, expected_data_directory))
+        self.cache_directory = os.path.join('..', '..', 'data_cache')
+        self.cache_directory = Path(os.path.join(file_path, self.cache_directory))
+        
         self.train_directory = Path(os.path.join(self.data_directory, 'training'))
         # For the purposes of model development, the 'validation' set is treated
         # as the test set
@@ -98,14 +101,14 @@ class DataGenerator():
     def load_patient_data(patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
         patient_data = {}
         
-        patient_data['sa_ed'] = DataGenerator.load_image(patient_directory, FileType.sa_ed)
-        patient_data['sa_ed_gt'] = DataGenerator.load_image(patient_directory, FileType.sa_ed_gt)
-        patient_data['sa_es'] = DataGenerator.load_image(patient_directory, FileType.sa_es)
-        patient_data['sa_es_gt'] = DataGenerator.load_image(patient_directory, FileType.sa_es_gt)
-        patient_data['la_ed'] = DataGenerator.load_image(patient_directory, FileType.la_ed)
-        patient_data['la_ed_gt'] = DataGenerator.load_image(patient_directory, FileType.la_ed_gt)
-        patient_data['la_es'] = DataGenerator.load_image(patient_directory, FileType.la_es)
-        patient_data['la_es_gt'] = DataGenerator.load_image(patient_directory, FileType.la_es_gt)
+        patient_data[FileType.sa_ed.value] = DataGenerator.load_image(patient_directory, FileType.sa_ed)
+        patient_data[FileType.sa_ed_gt.value] = DataGenerator.load_image(patient_directory, FileType.sa_ed_gt)
+        patient_data[FileType.sa_es.value] = DataGenerator.load_image(patient_directory, FileType.sa_es)
+        patient_data[FileType.sa_es_gt.value] = DataGenerator.load_image(patient_directory, FileType.sa_es_gt)
+        patient_data[FileType.la_ed.value] = DataGenerator.load_image(patient_directory, FileType.la_ed)
+        patient_data[FileType.la_ed_gt.value] = DataGenerator.load_image(patient_directory, FileType.la_ed_gt)
+        patient_data[FileType.la_es.value] = DataGenerator.load_image(patient_directory, FileType.la_es)
+        patient_data[FileType.la_es_gt.value] = DataGenerator.load_image(patient_directory, FileType.la_es_gt)
         
         return patient_data
     
@@ -113,66 +116,120 @@ class DataGenerator():
     @staticmethod
     def preprocess_patient_data(patient_data: Dict[str, sitk.Image], spacing: Tuple[float],
                                 size: Tuple[int]) -> Dict[str, sitk.Image]:
-        patient_data['sa_ed'] = Preprocess().resample_image(patient_data['sa_ed'], spacing, size, is_label=False)
-        patient_data['sa_es'] = Preprocess().resample_image(patient_data['sa_es'], spacing, size, is_label=False)
-        patient_data['sa_ed_gt'] = Preprocess().resample_image(patient_data['sa_ed_gt'], spacing, size, is_label=True)
-        patient_data['sa_es_gt'] = Preprocess().resample_image(patient_data['sa_es_gt'], spacing, size, is_label=True)
-        
-        patient_data['sa_ed'] = Preprocess.normalise_intensities(patient_data['sa_ed'])
-        patient_data['sa_es'] = Preprocess.normalise_intensities(patient_data['sa_es'])
+        # Resample images to standardised spacing and size
+        patient_data[FileType.sa_ed.value] = Preprocess.resample_image(patient_data[FileType.sa_ed.value],
+                                                                       spacing, size, is_label=False)
+        patient_data[FileType.sa_es.value] = Preprocess.resample_image(patient_data[FileType.sa_es.value],
+                                                                       spacing, size, is_label=False)
+        patient_data[FileType.sa_ed_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_ed_gt.value],
+                                                                          spacing, size, is_label=True)
+        patient_data[FileType.sa_es_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_es_gt.value],
+                                                                          spacing, size, is_label=True)
+        # Normalise intensities so there are (roughly) [0-1]
+        patient_data[FileType.sa_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_ed.value])
+        patient_data[FileType.sa_es.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_es.value])
         
         la_spacing = list(spacing)
-        la_spacing[2] = patient_data['la_ed'].GetSpacing()[2]
+        la_spacing[2] = patient_data[FileType.la_ed.value].GetSpacing()[2]
         la_size = list(size)
         la_size[2] = 1
-        patient_data['la_ed'] = Preprocess().resample_image(patient_data['la_ed'], la_spacing, la_size, is_label=False)
-        patient_data['la_es'] = Preprocess().resample_image(patient_data['la_es'], la_spacing, la_size, is_label=False)
-        patient_data['la_ed_gt'] = Preprocess().resample_image(patient_data['la_ed_gt'], la_spacing, la_size, is_label=True)
-        patient_data['la_es_gt'] = Preprocess().resample_image(patient_data['la_es_gt'], la_spacing, la_size, is_label=True)
+        patient_data[FileType.la_ed.value] = Preprocess.resample_image(patient_data[FileType.la_ed.value],
+                                                                       la_spacing, la_size, is_label=False)
+        patient_data[FileType.la_es.value] = Preprocess.resample_image(patient_data[FileType.la_es.value],
+                                                                       la_spacing, la_size, is_label=False)
+        patient_data[FileType.la_ed_gt.value] = Preprocess.resample_image(patient_data[FileType.la_ed_gt.value],
+                                                                          la_spacing, la_size, is_label=True)
+        patient_data[FileType.la_es_gt.value] = Preprocess.resample_image(patient_data[FileType.la_es_gt.value],
+                                                                          la_spacing, la_size, is_label=True)
         
-        patient_data['la_ed'] = Preprocess.normalise_intensities(patient_data['la_ed'])
-        patient_data['la_es'] = Preprocess.normalise_intensities(patient_data['la_es'])
+        patient_data[FileType.la_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.la_ed.value])
+        patient_data[FileType.la_es.value] = Preprocess.normalise_intensities(patient_data[FileType.la_es.value])
         
         return patient_data
         
+
+    def get_cache_directory(self, patient_directory: Union[str, Path]) -> Path:
+        path = os.path.normpath(patient_directory)
+        split_path = path.split(os.sep)
+        # .. / data / training or vlaidation / patient ID
+        # only last two are of interest
+        cache_directory = Path(os.path.join(self.cache_directory,
+                                            split_path[-2],
+                                            split_path[-1]))
+        
+        return cache_directory
+
     
-    @staticmethod
-    def generator(patient_directory: Union[str, Path], spacing: Tuple[float],
-                  size: Tuple[int]) -> Tuple[Dict[str, np.ndarray]]:
-        patient_data = DataGenerator.load_patient_data(patient_directory)
-        patient_data = DataGenerator.preprocess_patient_data(patient_data, spacing, size)
+    def is_cached(self, patient_directory: Union[str, Path]) -> bool:
+        patient_cache_directory = self.get_cache_directory(patient_directory)
+        
+        # Check if folder exists
+        if os.path.isdir(patient_cache_directory):
+            # and every individual file exist
+            for expected_file_name in FileType:
+                expected_file_path = os.path.join(patient_cache_directory,
+                                                  expected_file_name.value + '.nii.gz')
+                if not os.path.exists(expected_file_path):
+                    return False
+            return True
+        
+        return False
+
+        
+    def save_cache(self, patient_directory: Union[str, Path],
+                    patient_data: Dict[str, sitk.Image]) -> None:
+        patient_cache_directory = self.get_cache_directory(patient_directory)
+        os.makedirs(patient_cache_directory, exist_ok=True)
+        
+        for key, image in patient_data.items():
+            file_path = os.path.join(patient_cache_directory, key + '.nii.gz')
+            sitk.WriteImage(image, file_path)
+        
+    
+    def load_cache(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
+        patient_cache_directory = self.get_cache_directory(patient_directory)
+        patient_data = self.load_patient_data(patient_cache_directory)
+        
+        return patient_data
+    
+    
+    def generator(self, patient_directory: Union[str, Path]) -> Tuple[Dict[str, np.ndarray]]:
+        if self.is_cached(patient_directory):
+            patient_data = self.load_cache(patient_directory)
+        else:
+            patient_data = DataGenerator.load_patient_data(patient_directory)
+            patient_data = DataGenerator.preprocess_patient_data(patient_data,
+                                                                 self.target_spacing,
+                                                                 self.target_size)
+            self.save_cache(patient_directory, patient_data)
         
         for key, image in patient_data.items():
             patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
     
     
         output_data = []
-        output_data.append(({'input_sa': patient_data['sa_ed'],
-                             'input_la': patient_data['la_ed']},
-                            {'output_sa': patient_data['sa_ed_gt'],
-                             'output_la': patient_data['la_ed_gt']}))
-        output_data.append(({'input_sa': patient_data['sa_es'],
-                             'input_la': patient_data['la_es']},
-                            {'output_sa': patient_data['sa_es_gt'],
-                             'output_la': patient_data['la_es_gt']}))
+        output_data.append(({'input_sa': patient_data[FileType.sa_ed.value],
+                             'input_la': patient_data[FileType.la_ed.value]},
+                            {'output_sa': patient_data[FileType.sa_ed_gt.value],
+                             'output_la': patient_data[FileType.la_ed_gt.value]}))
+        output_data.append(({'input_sa': patient_data[FileType.sa_es.value],
+                             'input_la': patient_data[FileType.la_es.value]},
+                            {'output_sa': patient_data[FileType.sa_es_gt.value],
+                             'output_la': patient_data[FileType.la_es_gt.value]}))
         return output_data
 
     
     def train_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
-            patient_data = self.generator(patient_directory,
-                                          self.target_spacing,
-                                          self.target_size)
+            patient_data = self.generator(patient_directory)
             
-            yield patient_data[0]
-            yield patient_data[1]
+            yield patient_data[0]   # End diastolic
+            yield patient_data[1]   # End systolic
         
     
     def validation_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
-            patient_data = self.generator(patient_directory,
-                                          self.target_spacing,
-                                          self.target_size)
+            patient_data = self.generator(patient_directory)
             
             yield patient_data[0]
             yield patient_data[1]
@@ -180,9 +237,7 @@ class DataGenerator():
     
     def test_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
-            patient_data = self.generator(patient_directory,
-                                          self.target_spacing,
-                                          self.target_size)
+            patient_data = self.generator(patient_directory)
             
             yield patient_data[0]
             yield patient_data[1]
