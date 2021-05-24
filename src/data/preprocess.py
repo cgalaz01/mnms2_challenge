@@ -54,3 +54,4 @@ class Preprocess():
         normalised_image = sitk.Cast(image, sitk.sitkFloat32) / 500.0
         
         return normalised_image
+    

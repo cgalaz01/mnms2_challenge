@@ -10,9 +10,9 @@ class TensorFlowDataGenerator():
     @staticmethod
     def get_generators(batch_size: int, max_buffer_size: Union[int, None]=None):
         dg = DataGenerator()
-        
+        # TODO: Add output shape
         output_types = ({'input_sa': tf.float32,
-                         'input_la': tf.float32,},
+                         'input_la': tf.float32},
                         {'output_sa': tf.uint8,
                          'output_la': tf.uint8})
 

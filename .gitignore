@@ -8,6 +8,10 @@ data/training/
 data/validation/
 data_cache/
 
+# Tmp files
+logs/
+tmp/
+
 # C extensions
 *.so
 

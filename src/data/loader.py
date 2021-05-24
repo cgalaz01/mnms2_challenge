@@ -49,7 +49,7 @@ class DataGenerator():
         self.target_spacing = (1.25, 1.25, 10)
         self.target_size = (256, 256, 17)
         
-        self.n_classes = 3  # Excluding background
+        self.n_classes = 4  # Including background
 
 
     @staticmethod
@@ -206,10 +206,16 @@ class DataGenerator():
             # in sitk
             numpy_image = np.swapaxes(numpy_image, 0, -1)
             
+            # Add 'channel' axis for 3D images
+            #if 'sa' in key:
+            #    numpy_image = np.expand_dims(numpy_image, axis=-1)
+            
             # Generate one-hot encoding of the labels (done after swapping to simplify
             # the swap)
             if 'gt' in key:
-                n_values = self.n_classes + 1
+                if 'LA' in key: # use the 'depth; axis as the channel for the label
+                    numpy_image = np.squeeze(numpy_image, axis=-1)
+                n_values = self.n_classes
                 numpy_image = np.eye(n_values)[numpy_image]
                 
             patient_data[key] = numpy_image
