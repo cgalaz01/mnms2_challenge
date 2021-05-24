@@ -46,3 +46,11 @@ class Preprocess():
             resample.SetInterpolator(sitk.sitkBSpline)
     
         return resample.Execute(image)
+    
+    
+    @staticmethod
+    def normalise_intensities(image: sitk.Image) -> sitk.Image:
+        # Normalise image fro hypothetical 0-500 to 0-1 range
+        normalised_image = sitk.Cast(image, sitk.sitkFloat32) / 500.0
+        
+        return normalised_image

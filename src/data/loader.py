@@ -114,18 +114,24 @@ class DataGenerator():
     def preprocess_patient_data(patient_data: Dict[str, sitk.Image], spacing: Tuple[float],
                                 size: Tuple[int]) -> Dict[str, sitk.Image]:
         patient_data['sa_ed'] = Preprocess().resample_image(patient_data['sa_ed'], spacing, size, is_label=False)
-        patient_data['sa_ed_gt'] = Preprocess().resample_image(patient_data['sa_ed_gt'], spacing, size, is_label=True)
         patient_data['sa_es'] = Preprocess().resample_image(patient_data['sa_es'], spacing, size, is_label=False)
+        patient_data['sa_ed_gt'] = Preprocess().resample_image(patient_data['sa_ed_gt'], spacing, size, is_label=True)
         patient_data['sa_es_gt'] = Preprocess().resample_image(patient_data['sa_es_gt'], spacing, size, is_label=True)
+        
+        patient_data['sa_ed'] = Preprocess.normalise_intensities(patient_data['sa_ed'])
+        patient_data['sa_es'] = Preprocess.normalise_intensities(patient_data['sa_es'])
         
         la_spacing = list(spacing)
         la_spacing[2] = patient_data['la_ed'].GetSpacing()[2]
         la_size = list(size)
         la_size[2] = 1
         patient_data['la_ed'] = Preprocess().resample_image(patient_data['la_ed'], la_spacing, la_size, is_label=False)
-        patient_data['la_ed_gt'] = Preprocess().resample_image(patient_data['la_ed_gt'], la_spacing, la_size, is_label=True)
         patient_data['la_es'] = Preprocess().resample_image(patient_data['la_es'], la_spacing, la_size, is_label=False)
+        patient_data['la_ed_gt'] = Preprocess().resample_image(patient_data['la_ed_gt'], la_spacing, la_size, is_label=True)
         patient_data['la_es_gt'] = Preprocess().resample_image(patient_data['la_es_gt'], la_spacing, la_size, is_label=True)
+        
+        patient_data['la_ed'] = Preprocess.normalise_intensities(patient_data['la_ed'])
+        patient_data['la_es'] = Preprocess.normalise_intensities(patient_data['la_es'])
         
         return patient_data
         

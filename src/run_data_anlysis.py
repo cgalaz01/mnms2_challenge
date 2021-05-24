@@ -60,7 +60,7 @@ def print_size(size_list: List[List[float]]) -> None:
     
     print('Long-Axis y-size:')
     print(Counter(size_list[4]))
-    
+
 
 def data_analysis() -> None:
     dg = DataGenerator()
