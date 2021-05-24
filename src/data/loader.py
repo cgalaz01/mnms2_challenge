@@ -48,6 +48,8 @@ class DataGenerator():
         
         self.target_spacing = (1.25, 1.25, 10)
         self.target_size = (256, 256, 17)
+        
+        self.n_classes = 3  # Excluding background
 
 
     @staticmethod
@@ -193,6 +195,28 @@ class DataGenerator():
         return patient_data
     
     
+    def to_numpy(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, np.ndarray]:
+        for key, image in patient_data.items():
+            if 'gt' in key:
+                numpy_image = sitk.GetArrayFromImage(image).astype(np.uint8)
+            else:
+                numpy_image = sitk.GetArrayFromImage(image).astype(np.float32)
+                
+            # Swap axes so ordering is x, y, z rather than z, y, x as stored
+            # in sitk
+            numpy_image = np.swapaxes(numpy_image, 0, -1)
+            
+            # Generate one-hot encoding of the labels (done after swapping to simplify
+            # the swap)
+            if 'gt' in key:
+                n_values = self.n_classes + 1
+                numpy_image = np.eye(n_values)[numpy_image]
+                
+            patient_data[key] = numpy_image
+        
+        return patient_data
+
+
     def generator(self, patient_directory: Union[str, Path]) -> Tuple[Dict[str, np.ndarray]]:
         if self.is_cached(patient_directory):
             patient_data = self.load_cache(patient_directory)
@@ -202,13 +226,9 @@ class DataGenerator():
                                                                  self.target_spacing,
                                                                  self.target_size)
             self.save_cache(patient_directory, patient_data)
+
         
-        for key, image in patient_data.items():
-            if 'gt' in key:
-                patient_data[key] = sitk.GetArrayFromImage(image).astype(np.uint8)
-            else:
-                patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
-    
+        patient_data = self.to_numpy(patient_data)
     
         output_data = []
         output_data.append(({'input_sa': patient_data[FileType.sa_ed.value],
