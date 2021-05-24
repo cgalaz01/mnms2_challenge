@@ -11,13 +11,11 @@ def cache_data() -> None:
     shutil.rmtree(dg.cache_directory)
     
     print('Saving new cache...')
+    # TODO: make verbose
     for i in dg.train_generator():
-        if i % 2 == 0:
-            print(i // 2)
-    i = i // 2
+        continue
     for j in dg.validation_generator():
-        if j % 2 == 0:
-            print(j // 2 + i)
+        continue
     
 
 if __name__ == '__main__':

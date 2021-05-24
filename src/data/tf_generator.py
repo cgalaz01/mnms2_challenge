@@ -13,8 +13,8 @@ class TensorFlowDataGenerator():
         
         output_types = ({'input_sa': tf.float32,
                          'input_la': tf.float32,},
-                        {'output_sa': tf.float32,
-                         'output_la': tf.float32})
+                        {'output_sa': tf.uint8,
+                         'output_la': tf.uint8})
 
         buffer_size = len(dg.train_list) * 2
         if max_buffer_size is not None:

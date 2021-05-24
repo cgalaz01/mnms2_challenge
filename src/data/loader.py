@@ -204,7 +204,10 @@ class DataGenerator():
             self.save_cache(patient_directory, patient_data)
         
         for key, image in patient_data.items():
-            patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
+            if 'gt' in key:
+                patient_data[key] = sitk.GetArrayFromImage(image).astype(np.uint8)
+            else:
+                patient_data[key] = sitk.GetArrayFromImage(image).astype(np.float32)
     
     
         output_data = []
