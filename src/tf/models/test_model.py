@@ -7,13 +7,17 @@ from tensorflow.keras import layers
 def shared_2d_branch(input_shape, kernel_initializer):
     model = keras.Sequential()
     
-    model.add(layers.Conv2D(32, (7, 7), padding='same', activation='relu',
+    model.add(layers.DepthwiseConv2D((9, 9), padding='same', activation='relu',
                             input_shape=input_shape, kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(64, (5, 5), padding='same', activation='relu',
+    model.add(layers.DepthwiseConv2D((7, 7), padding='same', activation='relu',
                             kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(128, (3, 3), padding='same', activation='relu',
+    model.add(layers.DepthwiseConv2D((5, 5), padding='same', activation='relu',
                             kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(input_shape[-1], (3, 3), padding='same', activation='relu',
+    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
+                            kernel_initializer=kernel_initializer))
+    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
+                            kernel_initializer=kernel_initializer))
+    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
                             kernel_initializer=kernel_initializer))
     
     return model
