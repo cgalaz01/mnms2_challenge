@@ -14,6 +14,7 @@ from configuration import HyperParameters
 from data import TensorFlowDataGenerator
 from tf.models import test_model
 from tf.losses.loss import FocalLoss
+from tf.metrics.metrics import dice
 
 
 __SEED = 1456
@@ -74,7 +75,8 @@ if __name__ == '__main__':
             
         model.compile(
             optimizer=optimizer,
-            loss=loss)
+            loss=loss,
+            metrics=[dice])
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'test_model'

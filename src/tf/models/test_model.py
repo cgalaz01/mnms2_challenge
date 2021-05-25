@@ -44,10 +44,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     # Now predict each one independantly
     # Short-Axis branch
     # Reshape the image so that it is treated as a 3D image (W, H, D) to (W, H, D, C)
-    #new_sa_input_shape = list(sa_input_shape)
-    #new_sa_input_shape.append(1)
     x_sa = tf.expand_dims(x_sa, axis=-1)
-    #x_sa = layers.Reshape(new_sa_input_shape)(x_sa)
     
     x_sa = layers.Conv3D(16, (5, 5, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
     x_sa = layers.Activation('relu')(x_sa)
