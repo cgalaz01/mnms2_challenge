@@ -1,0 +1,175 @@
+import tensorflow as tf
+import tensorflow.keras.backend as K
+
+from tensorflow.python.keras.losses import LossFunctionWrapper
+
+# Categorical focal cross entropy loss taken from here and adapted:
+#   https://github.com/tensorflow/addons/issues/1948
+#@tf.keras.utils.register_keras_serializable(package="Addons")
+class CategoricalFocalCrossEntropy(LossFunctionWrapper):
+    """Implements the focal loss function.
+    Focal loss was first introduced in the RetinaNet paper
+    (https://arxiv.org/pdf/1708.02002.pdf). Focal loss is extremely useful for
+    classification when you have highly imbalanced classes. It down-weights
+    well-classified examples and focuses on hard examples. The loss value is
+    much high for a sample which is misclassified by the classifier as compared
+    to the loss value corresponding to a well-classified example. One of the
+    best use-cases of focal loss is its usage in object detection where the
+    imbalance between the background class and other classes is extremely high.
+    Usage:
+    ```python
+    fl = tfa.losses.SigmoidFocalCrossEntropy()
+    loss = fl(
+      [[0.97], [0.91], [0.03]],
+      [[1.0], [1.0], [0.0]])
+    print('Loss: ', loss.numpy())  # Loss: [0.00010971,
+                                            0.0032975,
+                                            0.00030611]
+    ```
+    Usage with tf.keras API:
+    ```python
+    model = tf.keras.Model(inputs, outputs)
+    model.compile('sgd', loss=tf.keras.losses.SigmoidFocalCrossEntropy())
+    ```
+    Args
+      alpha: balancing factor, default value is 0.25
+      gamma: modulating factor, default value is 2.0
+    Returns:
+      Weighted loss float `Tensor`. If `reduction` is `NONE`, this has the same
+          shape as `y_true`; otherwise, it is scalar.
+    Raises:
+        ValueError: If the shape of `sample_weight` is invalid or value of
+          `gamma` is less than zero
+    """
+
+    def __init__(
+        self,
+        from_logits: bool = False,
+        alpha = 0.25,
+        gamma = 2.0,
+        reduction: str = tf.keras.losses.Reduction.NONE,
+        name: str = "categorical_focal_crossentropy",
+    ):
+        super().__init__(
+            categorical_focal_crossentropy,
+            name=name,
+            reduction=reduction,
+            from_logits=from_logits,
+            alpha=alpha,
+            gamma=gamma,
+        )
+
+
+#@tf.keras.utils.register_keras_serializable(package="Addons")
+@tf.function
+def categorical_focal_crossentropy(
+    y_true,
+    y_pred,
+    alpha = 0.25,
+    gamma = 2.0,
+    from_logits: bool = False,
+) -> tf.Tensor:
+    """
+    Args
+        y_true: true targets tensor.
+        y_pred: predictions tensor.
+        alpha: balancing factor.
+        gamma: modulating factor.
+    Returns:
+        Weighted loss float `Tensor`. If `reduction` is `NONE`,this has the
+        same shape as `y_true`; otherwise, it is scalar.
+    """
+    if gamma and gamma < 0:
+        raise ValueError("Value of gamma should be greater than or equal to zero")
+
+    y_pred = tf.cast(tf.convert_to_tensor(y_pred), dtype=tf.float32)
+    y_true = tf.cast(tf.convert_to_tensor(y_true), dtype=tf.float32)
+
+    # Get the cross_entropy for each entry
+    ce = K.categorical_crossentropy(y_true, y_pred, from_logits=from_logits)
+
+    # If logits are provided then convert the predictions into probabilities
+    if from_logits:
+        pred_prob = tf.sigmoid(y_pred)
+    else:
+        pred_prob = y_pred
+
+    p_t = tf.linalg.matmul(y_true,tf.transpose(pred_prob))  #+((1 - y_true) * (1 - pred_prob))
+    alpha_factor = 1.0
+    modulating_factor = 1.0
+
+    if alpha:
+        #alpha = tf.convert_to_tensor(alpha, dtype=K.floatx())
+        alpha_factor = tf.linalg.matmul(y_true,tf.constant([1-alpha, alpha, alpha, alpha],shape=[4,1])) #+ (1 - y_true) * (1 - alpha)
+
+    if gamma:
+        gamma = tf.convert_to_tensor(gamma, dtype=K.floatx())
+        modulating_factor = tf.pow((1.0 - p_t), gamma)
+
+    # compute the final loss and return
+    return tf.reduce_sum(alpha_factor * modulating_factor * ce, axis=-1)
+
+
+# Loss taken from here:
+#    https://github.com/tensorflow/models/blob/master/official/vision/keras_cv/losses/focal_loss.py
+class FocalLoss(tf.keras.losses.Loss):
+  """Implements a Focal loss for classification problems.
+  Reference:
+    [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002).
+  """
+
+  def __init__(self,
+               alpha,
+               gamma,
+               reduction=tf.keras.losses.Reduction.AUTO,
+               name=None):
+    """Initializes `FocalLoss`.
+    Args:
+      alpha: The `alpha` weight factor for binary class imbalance.
+      gamma: The `gamma` focusing parameter to re-weight loss.
+      reduction: (Optional) Type of `tf.keras.losses.Reduction` to apply to
+        loss. Default value is `AUTO`. `AUTO` indicates that the reduction
+        option will be determined by the usage context. For almost all cases
+        this defaults to `SUM_OVER_BATCH_SIZE`. When used with
+        `tf.distribute.Strategy`, outside of built-in training loops such as
+        `tf.keras` `compile` and `fit`, using `AUTO` or `SUM_OVER_BATCH_SIZE`
+        will raise an error. Please see this custom training [tutorial](
+          https://www.tensorflow.org/tutorials/distribute/custom_training) for
+            more details.
+      name: Optional name for the op. Defaults to 'retinanet_class_loss'.
+    """
+    self._alpha = alpha
+    self._gamma = gamma
+    super(FocalLoss, self).__init__(reduction=reduction, name=name)
+
+  def call(self, y_true, y_pred):
+    """Invokes the `FocalLoss`.
+    Args:
+      y_true: A tensor of size [batch, num_anchors, num_classes]
+      y_pred: A tensor of size [batch, num_anchors, num_classes]
+    Returns:
+      Summed loss float `Tensor`.
+    """
+    with tf.name_scope('focal_loss'):
+      y_true = tf.cast(y_true, dtype=tf.float32)
+      y_pred = tf.cast(y_pred, dtype=tf.float32)
+      positive_label_mask = tf.equal(y_true, 1.0)
+      cross_entropy = (
+          tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true, logits=y_pred))
+      probs = tf.sigmoid(y_pred)
+      probs_gt = tf.where(positive_label_mask, probs, 1.0 - probs)
+      # With small gamma, the implementation could produce NaN during back prop.
+      modulator = tf.pow(1.0 - probs_gt, self._gamma)
+      loss = modulator * cross_entropy
+      weighted_loss = tf.where(positive_label_mask, self._alpha * loss,
+                               (1.0 - self._alpha) * loss)
+
+    return weighted_loss
+
+  def get_config(self):
+    config = {
+        'alpha': self._alpha,
+        'gamma': self._gamma,
+    }
+    base_config = super(FocalLoss, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))

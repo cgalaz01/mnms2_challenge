@@ -13,6 +13,7 @@ from tensorboard.plugins.hparams import api as hp
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator
 from tf.models import test_model
+from tf.losses.loss import FocalLoss
 
 
 __SEED = 1456
@@ -69,9 +70,14 @@ if __name__ == '__main__':
         if hparams[hyper_parameters.HP_OPTIMISER] == 'adam':
             optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
             
+        if hparams[hyper_parameters.HP_LOSS] == 'focal':
+            loss = FocalLoss(0.25, 2.0)
+        elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
+            loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+            
         model.compile(
             optimizer=optimizer,
-            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True))
+            loss=loss)
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'test_model'

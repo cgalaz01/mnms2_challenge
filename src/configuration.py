@@ -21,6 +21,7 @@ class HyperParameters():
         self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([1]))
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.0005]))
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))
+        self.HP_LOSS = HParamS('optimiser', hp.Discrete(['focal']))
         self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
         
         self.parameter_dict = {}
@@ -29,6 +30,7 @@ class HyperParameters():
         self.parameter_dict[self.HP_BATCH_SIZE] = self.HP_BATCH_SIZE.domain.values
         self.parameter_dict[self.HP_LEANRING_RATE] = self.HP_LEANRING_RATE.domain.values
         self.parameter_dict[self.HP_OPTIMISER] = self.HP_OPTIMISER.domain.values
+        self.parameter_dict[self.HP_LOSS] = self.HP_LOSS.domain.values
         self.parameter_dict[self.HP_DROPOUT] = self.HP_DROPOUT.domain.values
         
         if search_type == 'grid':
