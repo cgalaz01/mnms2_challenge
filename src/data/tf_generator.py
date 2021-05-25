@@ -8,11 +8,16 @@ from .loader import DataGenerator
 class TensorFlowDataGenerator():
     
     @staticmethod
-    def get_generators(batch_size: int, max_buffer_size: Union[int, None]=None):
-        dg = DataGenerator()
+    def get_generators(batch_size: int, max_buffer_size: Union[int, None]=None,
+                       floating_precision: str='32'):
+        dg = DataGenerator(floating_precision)
         # TODO: Add output shape
-        output_types = ({'input_sa': tf.float32,
-                         'input_la': tf.float32},
+        if floating_precision == '16':
+            float_type = tf.float16
+        else:
+            float_type = tf.float32
+        output_types = ({'input_sa': float_type,
+                         'input_la': float_type},
                         {'output_sa': tf.uint8,
                          'output_la': tf.uint8})
 
@@ -23,7 +28,8 @@ class TensorFlowDataGenerator():
                                                          output_types=output_types)
         train_generator = train_generator.shuffle(buffer_size=buffer_size,
                                                   seed=4875,
-                                                  reshuffle_each_iteration=True).batch(batch_size)
+                                                  reshuffle_each_iteration=True
+                                                  ).batch(batch_size).prefetch(2)
         
         validation_generator = tf.data.Dataset.from_generator(dg.validation_generator,
                                                               output_types=output_types)

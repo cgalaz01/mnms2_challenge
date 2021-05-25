@@ -53,7 +53,10 @@ if __name__ == '__main__':
             keras.mixed_precision.experimental.set_policy(policy)
     
         batch_size = hparams[hyper_parameters.HP_BATCH_SIZE]
-        train_gen, validation_gen, test_gen, data_gen = TensorFlowDataGenerator.get_generators(batch_size)
+        (train_gen, validation_gen,
+         test_gen, data_gen) = TensorFlowDataGenerator.get_generators(batch_size,
+                                                                      max_buffer_size=None,
+                                                                      floating_precision=fp)
         
         sa_input_shape = list(data_gen.target_size)
         la_input_shape = list(data_gen.target_size)

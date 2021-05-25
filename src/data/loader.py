@@ -27,7 +27,7 @@ class FileType(Enum):
 class DataGenerator():
 
     
-    def __init__(self) -> None:
+    def __init__(self, floating_precision: str='32') -> None:
         file_path = Path(__file__).parent.absolute()
         expected_data_directory = os.path.join('..', '..', 'data')
         
@@ -50,6 +50,8 @@ class DataGenerator():
         self.target_size = (256, 256, 17)
         
         self.n_classes = 4  # Including background
+
+        self.floating_precision = floating_precision
 
 
     @staticmethod
@@ -200,7 +202,10 @@ class DataGenerator():
             if 'gt' in key:
                 numpy_image = sitk.GetArrayFromImage(image).astype(np.uint8)
             else:
-                numpy_image = sitk.GetArrayFromImage(image).astype(np.float32)
+                if self.floating_precision == '16':
+                    numpy_image = sitk.GetArrayFromImage(image).astype(np.float16)
+                else:
+                    numpy_image = sitk.GetArrayFromImage(image).astype(np.float32)
                 
             # Swap axes so ordering is x, y, z rather than z, y, x as stored
             # in sitk
