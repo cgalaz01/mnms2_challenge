@@ -52,6 +52,18 @@ class DataGenerator():
         self.n_classes = 4  # Including background
 
         self.floating_precision = floating_precision
+        
+        # Compute the shape for the inputs and outputs
+        self.sa_target_shape = list(self.target_size)
+        #sa_target_size.insert(0, None)
+        self.sa_shape = self.sa_target_shape.copy()
+        self.sa_target_shape.append(self.n_classes)
+        
+        self.la_target_shape = list(self.target_size)
+        #la_target_size.insert(0, None)
+        self.la_shape = self.la_target_shape.copy()
+        self.la_shape[-1] = 1
+        self.la_target_shape[-1] = self.n_classes
 
 
     @staticmethod

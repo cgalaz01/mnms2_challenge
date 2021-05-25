@@ -59,11 +59,8 @@ if __name__ == '__main__':
                                                                       max_buffer_size=None,
                                                                       floating_precision=fp)
         
-        sa_input_shape = list(data_gen.target_size)
-        la_input_shape = list(data_gen.target_size)
-        la_input_shape[-1] = 1
-        num_classes = data_gen.n_classes
-        model = test_model.get_model(sa_input_shape, la_input_shape, num_classes)
+                                                                      
+        model = test_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
