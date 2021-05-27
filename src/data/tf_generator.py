@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import tensorflow as tf
 
@@ -9,7 +9,7 @@ class TensorFlowDataGenerator():
     
     @staticmethod
     def get_generators(batch_size: int, max_buffer_size: Union[int, None]=None,
-                       floating_precision: str='32'):
+                       floating_precision: str='32') -> Tuple[tf.Dataset]:
         dg = DataGenerator(floating_precision)
         
         output_shapes = ({'input_sa': tf.TensorShape(dg.sa_shape),

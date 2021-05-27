@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import List, Union, Tuple
 
 from multiprocessing import Pool
 
@@ -58,6 +58,7 @@ class Preprocess():
         
         return normalised_image
     
+    
 
 class Registration():
     
@@ -67,7 +68,8 @@ class Registration():
     
     @staticmethod
     def _function_register(initial_transform, moving_image, fixed_image,
-                           learning_rate, histogram_bins, sampling_rate, seed):
+                           learning_rate, histogram_bins, sampling_rate,
+                           seed) -> Tuple[sitk.Transform, float]:
     
         sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
         registration_method = sitk.ImageRegistrationMethod()
@@ -106,7 +108,7 @@ class Registration():
     @staticmethod
     def _parallel_register(initial_transform, moving_image, fixed_image,
                            learning_rate_list, histogram_bins, sampling_rate,
-                           seed):
+                           seed) -> Tuple[sitk.Transform, float]:
         
         function_input = [(sitk.AffineTransform(initial_transform),
                            moving_image,
@@ -132,7 +134,7 @@ class Registration():
     
     @staticmethod
     def _major_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
-                         debug_output: int=0):
+                         debug_output: int=0) -> Tuple[sitk.Transform, float]:
         debug_image_outputs = []
         debug_image_moving = []
         debug_image_fixed = []
@@ -220,8 +222,7 @@ class Registration():
     
     @staticmethod
     def _minor_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
-                         debug_output: int=0):
-        
+                         debug_output: int=0) -> Tuple[sitk.Transform, float]:
         debug_image_outputs = []
         debug_image_moving = []
         debug_image_fixed = []
@@ -306,7 +307,8 @@ class Registration():
         
     
     @staticmethod
-    def register(moving_image: sitk.Image, fixed_image: sitk.Image, debug_output: int=0):        
+    def register(moving_image: sitk.Image, fixed_image: sitk.Image,
+                 debug_output: int=0) -> Tuple[sitk.Transform, float, Union[None, List[List[sitk.Image]]]]:        
         major_output = Registration._major_alignment(moving_image, fixed_image, debug_output)
         minor_output = Registration._minor_alignment(moving_image, fixed_image, debug_output)
 
@@ -315,4 +317,43 @@ class Registration():
         else:
             return minor_output
         
-        
+    
+    @staticmethod
+    def get_affine_matrix(image: sitk.Image) -> np.ndarray:
+        # get affine transform in LPS
+        c = [image.TransformContinuousIndexToPhysicalPoint(p)
+             for p in ((1, 0, 0),
+                       (0, 1, 0),
+                       (0, 0, 1),
+                       (0, 0, 0))]
+        c = np.array(c)
+        affine = np.concatenate([
+            np.concatenate([c[0:3] - c[3:], c[3:]], axis=0),
+            [[0.], [0.], [0.], [1.]]
+        ], axis=1)
+        affine = np.transpose(affine)
+        # convert to RAS to match nibabel etc.
+        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine)
+        return affine
+    
+    
+    @staticmethod
+    def get_affine_registration_matrix(moving_image: sitk.Image,
+                                       registration_affine: sitk.Transform) -> np.ndarray:
+        # Get affine transform in LPS
+        c = [registration_affine.TransformPoint(
+                 moving_image.TransformContinuousIndexToPhysicalPoint(p))
+             for p in ((1, 0, 0),
+                       (0, 1, 0),
+                       (0, 0, 1),
+                       (0, 0, 0))]
+        c = np.array(c)
+        affine = np.concatenate([
+            np.concatenate([c[0:3] - c[3:], c[3:]], axis=0),
+            [[0.], [0.], [0.], [1.]]
+        ], axis=1)
+        affine = np.transpose(affine)
+        # Convert to RAS to match nibabel etc.
+        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine)
+        return affine
+    
