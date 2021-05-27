@@ -10,7 +10,7 @@ import numpy as np
 
 import SimpleITK as sitk
 
-from .preprocess import Preprocess
+from .preprocess import Preprocess, Registration
 
 
 class FileType(Enum):
@@ -22,6 +22,15 @@ class FileType(Enum):
     la_ed_gt = 'LA_ED_gt'
     la_es = 'LA_ES'
     la_es_gt = 'LA_ES_gt'
+    
+    
+class ExtraType(Enum):
+    reg_affine = 'SA_to_LA_registration_affine'
+    
+
+class OutputAffine(Enum):
+    sa_affine = 'SA_Affine'
+    la_affine = 'LA_Affine'    
     
 
 class DataGenerator():
@@ -100,7 +109,6 @@ class DataGenerator():
         
     @staticmethod
     def load_image(patient_directory: Union[str, Path], file_type: FileType) -> sitk.Image:
-        
         file_suffix = '*' + file_type.value + '.nii.gz'
         
         file_path = os.path.join(patient_directory, file_suffix)
@@ -111,6 +119,19 @@ class DataGenerator():
         sitk_image = sitk.ReadImage(file_path)
         
         return sitk_image
+    
+    @staticmethod
+    def load_transformation(patient_directory: Union[str, Path], file_type: ExtraType) -> sitk.Transform:
+        file_suffix = '*' + file_type.value + '.tfm'
+        
+        file_path = os.path.join(patient_directory, file_suffix)
+        file_path = glob(file_path)
+        assert len(file_path) == 1
+        file_path = file_path[0]
+        
+        sitk_transform = sitk.ReadTransform(file_path)
+        
+        return sitk_transform
     
     
     @staticmethod
@@ -130,9 +151,20 @@ class DataGenerator():
     
     
     @staticmethod
+    def load_extra_patient_data(patient_directory: Union[str, Path],
+                                patient_data: Dict[str, sitk.Image]) -> Dict[str, sitk.Image]:
+        
+        patient_data[ExtraType.reg_affine.value] = DataGenerator.load_transformation(patient_directory,
+                                                                                     ExtraType.reg_affine)
+        
+        return patient_data
+
+    
+    @staticmethod
     def preprocess_patient_data(patient_data: Dict[str, sitk.Image], spacing: Tuple[float],
                                 size: Tuple[int]) -> Dict[str, sitk.Image]:
         # Resample images to standardised spacing and size
+        # Short-axis
         patient_data[FileType.sa_ed.value] = Preprocess.resample_image(patient_data[FileType.sa_ed.value],
                                                                        spacing, size, is_label=False)
         patient_data[FileType.sa_es.value] = Preprocess.resample_image(patient_data[FileType.sa_es.value],
@@ -141,10 +173,8 @@ class DataGenerator():
                                                                           spacing, size, is_label=True)
         patient_data[FileType.sa_es_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_es_gt.value],
                                                                           spacing, size, is_label=True)
-        # Normalise intensities so there are (roughly) [0-1]
-        patient_data[FileType.sa_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_ed.value])
-        patient_data[FileType.sa_es.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_es.value])
-        
+
+        # Long-axis
         la_spacing = list(spacing)
         la_spacing[2] = patient_data[FileType.la_ed.value].GetSpacing()[2]
         la_size = list(size)
@@ -157,6 +187,15 @@ class DataGenerator():
                                                                           la_spacing, la_size, is_label=True)
         patient_data[FileType.la_es_gt.value] = Preprocess.resample_image(patient_data[FileType.la_es_gt.value],
                                                                           la_spacing, la_size, is_label=True)
+        
+        # Register short-axis to long axis (only for end diastolic for faster execution time)
+        affine_transform, _ = Registration.register(patient_data[FileType.sa_ed.value],
+                                                    patient_data[FileType.la_ed.value])
+        patient_data[ExtraType.reg_affine.value] = affine_transform
+        
+        # Normalise intensities so there are (roughly) [0-1]
+        patient_data[FileType.sa_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_ed.value])
+        patient_data[FileType.sa_es.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_es.value])
         
         patient_data[FileType.la_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.la_ed.value])
         patient_data[FileType.la_es.value] = Preprocess.normalise_intensities(patient_data[FileType.la_es.value])
@@ -187,6 +226,12 @@ class DataGenerator():
                                                   expected_file_name.value + '.nii.gz')
                 if not os.path.exists(expected_file_path):
                     return False
+                
+            for expected_file_name in ExtraType:
+                expected_file_path = os.path.join(patient_cache_directory,
+                                                  expected_file_name.value + '.tfm')
+                if not os.path.exists(expected_file_path):
+                    return False
             return True
         
         return False
@@ -197,19 +242,34 @@ class DataGenerator():
         patient_cache_directory = self.get_cache_directory(patient_directory)
         os.makedirs(patient_cache_directory, exist_ok=True)
         
-        for key, image in patient_data.items():
-            file_path = os.path.join(patient_cache_directory, key + '.nii.gz')
-            sitk.WriteImage(image, file_path)
+        for key, data in patient_data.items():
+            if key in (k.value for k in FileType):
+                file_path = os.path.join(patient_cache_directory, key + '.nii.gz')
+                sitk.WriteImage(data, file_path)
+            elif key in (k.value for k in ExtraType):
+                file_path = os.path.join(patient_cache_directory, key + '.tfm')
+                sitk.WriteTransform(data, file_path)
         
     
     def load_cache(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
         patient_cache_directory = self.get_cache_directory(patient_directory)
         patient_data = self.load_patient_data(patient_cache_directory)
+        patient_data = self.load_extra_patient_data(patient_cache_directory, patient_data)
         
         return patient_data
     
     
     def to_numpy(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, np.ndarray]:
+        
+        # Handle 'ExtraType' data first
+        sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
+                                                                patient_data[ExtraType.reg_affine.value])
+        la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
+        
+        # Free from memory (and indexing)
+        del patient_data[ExtraType.reg_affine.value]
+        
+        # Handle original file data (images and segmentations)
         for key, image in patient_data.items():
             if 'gt' in key:
                 numpy_image = sitk.GetArrayFromImage(image).astype(np.uint8)
@@ -237,6 +297,9 @@ class DataGenerator():
                 
             patient_data[key] = numpy_image
         
+        patient_data[OutputAffine.sa_affine.value] = sa_affine
+        patient_data[OutputAffine.la_affine.value] = la_affine
+        
         return patient_data
 
 
@@ -255,11 +318,16 @@ class DataGenerator():
     
         output_data = []
         output_data.append(({'input_sa': patient_data[FileType.sa_ed.value],
-                             'input_la': patient_data[FileType.la_ed.value]},
+                             'input_la': patient_data[FileType.la_ed.value],
+                             'input_sa_affine': patient_data[OutputAffine.sa_affine.value],
+                             'input_la_affine': patient_data[OutputAffine.la_affine.value]},
                             {'output_sa': patient_data[FileType.sa_ed_gt.value],
                              'output_la': patient_data[FileType.la_ed_gt.value]}))
+        
         output_data.append(({'input_sa': patient_data[FileType.sa_es.value],
-                             'input_la': patient_data[FileType.la_es.value]},
+                             'input_la': patient_data[FileType.la_es.value],
+                             'input_sa_affine': patient_data[OutputAffine.sa_affine.value],
+                             'input_la_affine': patient_data[OutputAffine.la_affine.value]},
                             {'output_sa': patient_data[FileType.sa_es_gt.value],
                              'output_la': patient_data[FileType.la_es_gt.value]}))
         return output_data
