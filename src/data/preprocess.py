@@ -1,6 +1,9 @@
 from typing import Union, Tuple
 
+from multiprocessing import Pool
+
 import numpy as np
+from scipy import ndimage
 
 import SimpleITK as sitk
 
@@ -55,3 +58,261 @@ class Preprocess():
         
         return normalised_image
     
+
+class Registration():
+    
+    def __init__(self):
+        pass
+    
+    
+    @staticmethod
+    def _function_register(initial_transform, moving_image, fixed_image,
+                           learning_rate, histogram_bins, sampling_rate, seed):
+    
+        sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
+        registration_method = sitk.ImageRegistrationMethod()
+            
+        # Similarity metric settings.
+        registration_method.SetMetricAsMattesMutualInformation(numberOfHistogramBins=histogram_bins)
+        registration_method.SetMetricSamplingStrategy(registration_method.RANDOM)
+        registration_method.SetMetricSamplingPercentage(sampling_rate, seed=seed)
+        
+        registration_method.SetInterpolator(sitk.sitkLinear)
+        
+        # Optimizer settings.
+        if learning_rate == None:
+            estimate_learning_rate = registration_method.EachIteration
+            learning_rate = 0
+        else:
+            estimate_learning_rate = registration_method.Never
+            
+        registration_method.SetOptimizerAsGradientDescent(learningRate=learning_rate,
+                                                          numberOfIterations=100,
+                                                          convergenceMinimumValue=1e-12,
+                                                          convergenceWindowSize=10,
+                                                          estimateLearningRate=estimate_learning_rate)
+    
+        registration_method.SetOptimizerScalesFromPhysicalShift()
+        
+        registration_method.SetInitialTransform(initial_transform, inPlace=True)        
+        
+        transform = registration_method.Execute(sitk.Cast(fixed_image, sitk.sitkFloat32), 
+                                                sitk.Cast(moving_image, sitk.sitkFloat32))
+        
+        
+        return transform, registration_method.GetMetricValue()
+        
+    
+    @staticmethod
+    def _parallel_register(initial_transform, moving_image, fixed_image,
+                           learning_rate_list, histogram_bins, sampling_rate,
+                           seed):
+        
+        function_input = [(sitk.AffineTransform(initial_transform),
+                           moving_image,
+                           fixed_image,
+                           learning_rate_list[i],
+                           histogram_bins,
+                           sampling_rate,
+                           seed) for i in range(len(learning_rate_list))]
+        
+        with Pool() as pool:
+            output_results = pool.starmap(Registration._function_register, function_input)
+
+        selected_transform = None
+        min_metric_value = 1e5
+        for i in range(len(output_results)):
+            transform, metric_value = output_results[i]
+            if metric_value < min_metric_value:
+                min_metric_value = metric_value
+                selected_transform = transform
+                
+        return selected_transform, min_metric_value
+        
+    
+    @staticmethod
+    def _major_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
+                         debug_output: int=0):
+        debug_image_outputs = []
+        debug_image_moving = []
+        debug_image_fixed = []
+        
+        sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
+        
+        initial_transform = sitk.AffineTransform(3)
+        
+        if debug_output > 0:
+            debug_image = sitk.Resample(moving_image,
+                                        fixed_image,
+                                        initial_transform,
+                                        sitk.sitkLinear,
+                                        0.0,
+                                        moving_image.GetPixelID())
+            debug_image_moving.append(debug_image)
+            debug_image_fixed.append(fixed_image)
+        
+        
+        transform = initial_transform
+        
+        
+        gaussian_sigma = [8, 4, 2, 1, 0]
+        
+        histogram_bins = 200
+        learning_rate_list = [[8.0, 4.0, 2.0, 1.0, None],
+                              [4.0, 2.0, 1.0, 0.5, None],
+                              [2.0, 1.0, 0.5, 0.25, None],
+                              [1.0, 0.5, 0.25, 0.1, None],
+                              [0.5, 0.25, 0.1, 0.05, None]]
+        sampling_rate = 1.0
+        
+        seed = 12453
+        
+        for i in range(len(gaussian_sigma)):
+                
+            numpy_fixed_image = sitk.GetArrayFromImage(fixed_image)    
+            numpy_fixed_image = ndimage.gaussian_filter(numpy_fixed_image,
+                                                        sigma=(1,
+                                                               gaussian_sigma[i],
+                                                               gaussian_sigma[i]),
+                                                        mode='constant')
+            
+            
+            tmp_fixed_image = sitk.GetImageFromArray(numpy_fixed_image)
+            tmp_fixed_image.CopyInformation(fixed_image)
+            
+            numpy_moving_image = sitk.GetArrayFromImage(moving_image)
+            numpy_moving_image = ndimage.gaussian_filter(numpy_moving_image,
+                                                         sigma=(gaussian_sigma[i] / 2,
+                                                                gaussian_sigma[i],
+                                                                gaussian_sigma[i]),
+                                                         mode='constant')
+            
+            tmp_moving_image = sitk.GetImageFromArray(numpy_moving_image)
+            tmp_moving_image.CopyInformation(moving_image)
+            
+    
+            transform, metric = Registration._parallel_register(sitk.AffineTransform(transform),
+                                                                tmp_moving_image, tmp_fixed_image,
+                                                                learning_rate_list[i], histogram_bins,
+                                                                sampling_rate, seed)
+        
+            if debug_output > 0:
+                debug_image = sitk.Resample(tmp_moving_image,
+                                            tmp_fixed_image,
+                                            transform,
+                                            sitk.sitkLinear,
+                                            0.0,
+                                            tmp_moving_image.GetPixelID())
+                debug_image_moving.append(debug_image)
+                debug_image_fixed.append(tmp_fixed_image)
+    
+    
+        
+        final_transform = transform
+        
+        debug_image_outputs = [debug_image_moving, debug_image_fixed]
+        
+        if debug_output == 1:
+            return final_transform, metric, debug_image_outputs
+        else:
+            return final_transform, metric
+    
+    
+    @staticmethod
+    def _minor_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
+                         debug_output: int=0):
+        
+        debug_image_outputs = []
+        debug_image_moving = []
+        debug_image_fixed = []
+        
+        sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
+        
+        initial_transform = sitk.AffineTransform(3)
+        
+        if debug_output > 0:
+            debug_image = sitk.Resample(moving_image,
+                                        fixed_image,
+                                        initial_transform,
+                                        sitk.sitkLinear,
+                                        0.0,
+                                        moving_image.GetPixelID())
+            debug_image_moving.append(debug_image)
+            debug_image_fixed.append(fixed_image)
+        
+        
+        transform = initial_transform
+        
+        
+        gaussian_sigma = [2, 1, 0, 0, 0]
+        
+        histogram_bins = 200
+        learning_rate_list = [[2.0, 2.0, 1.0, 0.5, None],
+                              [2.0, 1.0, 0.5, 0.25, None],
+                              [1.0, 0.5, 0.25, 0.1, None],
+                              [0.5, 0.25, 0.1, 0.05, None],
+                              [0.25, 0.1, 0.05, 0.01, None]]
+        sampling_rate = 1.0
+        
+        seed =  12453
+        
+        for i in range(len(gaussian_sigma)):
+                
+            numpy_fixed_image = sitk.GetArrayFromImage(fixed_image)    
+            numpy_fixed_image = ndimage.gaussian_filter(numpy_fixed_image,
+                                                        sigma=(1,
+                                                               gaussian_sigma[i],
+                                                               gaussian_sigma[i]),
+                                                        mode='constant')
+            
+            
+            tmp_fixed_image = sitk.GetImageFromArray(numpy_fixed_image)
+            tmp_fixed_image.CopyInformation(fixed_image)
+            
+            numpy_moving_image = sitk.GetArrayFromImage(moving_image)
+            numpy_moving_image = ndimage.gaussian_filter(numpy_moving_image,
+                                                         sigma=(gaussian_sigma[i] / 2,
+                                                                gaussian_sigma[i],
+                                                                gaussian_sigma[i]),
+                                                         mode='constant')
+            
+            tmp_moving_image = sitk.GetImageFromArray(numpy_moving_image)
+            tmp_moving_image.CopyInformation(moving_image)
+    
+            transform, metric = Registration._parallel_register(sitk.AffineTransform(transform),
+                                                                tmp_moving_image, tmp_fixed_image,
+                                                                learning_rate_list[i], histogram_bins,
+                                                                sampling_rate, seed)
+        
+            if debug_output > 0:
+                debug_image = sitk.Resample(tmp_moving_image,
+                                            tmp_fixed_image,
+                                            transform,
+                                            sitk.sitkLinear,
+                                            0.0,
+                                            tmp_moving_image.GetPixelID())
+                debug_image_moving.append(debug_image)
+                debug_image_fixed.append(tmp_fixed_image)
+    
+        
+        final_transform = transform
+        
+        debug_image_outputs = [debug_image_moving, debug_image_fixed]
+        
+        if debug_output == 1:
+            return final_transform, metric, debug_image_outputs
+        else:
+            return final_transform, metric
+        
+    
+    @staticmethod
+    def register(moving_image: sitk.Image, fixed_image: sitk.Image, debug_output: int=0):        
+        major_output = Registration._major_alignment(moving_image, fixed_image, debug_output)
+        minor_output = Registration._minor_alignment(moving_image, fixed_image, debug_output)
+
+        if major_output[1] < minor_output[1]:
+            return major_output
+        else:
+            return minor_output
+        
+        
