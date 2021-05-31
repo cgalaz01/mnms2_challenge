@@ -245,14 +245,12 @@ class Registration():
         transform = initial_transform
         
         
-        gaussian_sigma = [2, 1, 0, 0, 0]
+        gaussian_sigma = [2, 1, 0]
         
         histogram_bins = 200
         learning_rate_list = [[2.0, 2.0, 1.0, 0.5, None],
                               [2.0, 1.0, 0.5, 0.25, None],
-                              [1.0, 0.5, 0.25, 0.1, None],
-                              [0.5, 0.25, 0.1, 0.05, None],
-                              [0.25, 0.1, 0.05, 0.01, None]]
+                              [1.0, 0.5, 0.25, 0.1, None],]
         sampling_rate = 1.0
         
         seed =  12453
@@ -354,6 +352,6 @@ class Registration():
         ], axis=1)
         affine = np.transpose(affine)
         # Convert to RAS to match nibabel etc.
-        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine)
+        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine).astype(np.float32)
         return affine
     

@@ -64,15 +64,15 @@ class DataGenerator():
         
         # Compute the shape for the inputs and outputs
         self.sa_target_shape = list(self.target_size)
-        #sa_target_size.insert(0, None)
         self.sa_shape = self.sa_target_shape.copy()
         self.sa_target_shape.append(self.n_classes)
         
         self.la_target_shape = list(self.target_size)
-        #la_target_size.insert(0, None)
         self.la_shape = self.la_target_shape.copy()
         self.la_shape[-1] = 1
         self.la_target_shape[-1] = self.n_classes
+        
+        self.affine_shape = (12,)
 
 
     @staticmethod
@@ -303,7 +303,7 @@ class DataGenerator():
         return patient_data
 
 
-    def generator(self, patient_directory: Union[str, Path]) -> Tuple[Dict[str, np.ndarray]]:
+    def generator(self, patient_directory: Union[str, Path], affine_matrix: bool) -> Tuple[Dict[str, np.ndarray]]:
         if self.is_cached(patient_directory):
             patient_data = self.load_cache(patient_directory)
         else:
@@ -318,24 +318,26 @@ class DataGenerator():
     
         output_data = []
         output_data.append(({'input_sa': patient_data[FileType.sa_ed.value],
-                             'input_la': patient_data[FileType.la_ed.value],
-                             'input_sa_affine': patient_data[OutputAffine.sa_affine.value],
-                             'input_la_affine': patient_data[OutputAffine.la_affine.value]},
+                             'input_la': patient_data[FileType.la_ed.value]},
                             {'output_sa': patient_data[FileType.sa_ed_gt.value],
                              'output_la': patient_data[FileType.la_ed_gt.value]}))
         
         output_data.append(({'input_sa': patient_data[FileType.sa_es.value],
-                             'input_la': patient_data[FileType.la_es.value],
-                             'input_sa_affine': patient_data[OutputAffine.sa_affine.value],
-                             'input_la_affine': patient_data[OutputAffine.la_affine.value]},
+                             'input_la': patient_data[FileType.la_es.value]},
                             {'output_sa': patient_data[FileType.sa_es_gt.value],
                              'output_la': patient_data[FileType.la_es_gt.value]}))
+        
+        if affine_matrix:
+            for data in output_data:
+                data[0]['input_sa_affine'] = patient_data[OutputAffine.sa_affine.value]
+                data[0]['input_la_affine'] = patient_data[OutputAffine.la_affine.value]
+        
         return output_data
 
     
     def train_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
@@ -343,7 +345,7 @@ class DataGenerator():
     
     def validation_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]
             yield patient_data[1]
@@ -351,10 +353,32 @@ class DataGenerator():
     
     def test_generator(self) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
-            patient_data = self.generator(patient_directory)
+            patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]
             yield patient_data[1]
             
     
+    def train_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+        for patient_directory in self.train_list:
+            patient_data = self.generator(patient_directory, affine_matrix=True)
+            
+            yield patient_data[0]   # End diastolic
+            yield patient_data[1]   # End systolic
+        
     
+    def validation_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+        for patient_directory in self.validation_list:
+            patient_data = self.generator(patient_directory, affine_matrix=True)
+            
+            yield patient_data[0]
+            yield patient_data[1]
+            
+    
+    def test_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+        for patient_directory in self.test_list:
+            patient_data = self.generator(patient_directory, affine_matrix=True)
+            
+            yield patient_data[0]
+            yield patient_data[1]
+
