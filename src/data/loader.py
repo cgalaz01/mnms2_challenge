@@ -72,7 +72,7 @@ class DataGenerator():
         self.la_shape[-1] = 1
         self.la_target_shape[-1] = self.n_classes
         
-        self.affine_shape = (12,)
+        self.affine_shape = (4, 4)
 
 
     @staticmethod
@@ -264,6 +264,51 @@ class DataGenerator():
         # Handle 'ExtraType' data first
         sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
                                                                 patient_data[ExtraType.reg_affine.value])
+        sa_affine = sa_affine.astype(np.float32)
+        la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
+        la_affine = la_affine.astype(np.float32)
+        
+        # Free from memory (and indexing)
+        del patient_data[ExtraType.reg_affine.value]
+        
+        # Handle original file data (images and segmentations)
+        for key, image in patient_data.items():
+            numpy_image = sitk.GetArrayFromImage(image)
+            # Swap axes so ordering is x, y, z rather than z, y, x as stored
+            # in sitk
+            numpy_image = np.swapaxes(numpy_image, 0, -1)
+            
+            # Generate one-hot encoding of the labels
+            if 'gt' in key:
+                numpy_image = numpy_image.astype(np.uint8)
+                if 'LA' in key: # use the 'depth; axis as the channel for the label
+                    numpy_image = np.squeeze(numpy_image, axis=-1)
+                n_values = self.n_classes
+                numpy_image = np.eye(n_values)[numpy_image]
+            
+            
+            if self.floating_precision == '16':
+                numpy_image = numpy_image.astype(np.float16)
+            else:
+                numpy_image = numpy_image.astype(np.float32)
+                
+            # Add 'channel' axis for 3D images
+            #if 'sa' in key:
+            #    numpy_image = np.expand_dims(numpy_image, axis=-1)
+                
+            patient_data[key] = numpy_image
+        
+        patient_data[OutputAffine.sa_affine.value] = sa_affine
+        patient_data[OutputAffine.la_affine.value] = la_affine
+        
+        return patient_data
+
+    """
+    def to_numpy(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, np.ndarray]:
+        
+        # Handle 'ExtraType' data first
+        sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
+                                                                patient_data[ExtraType.reg_affine.value])
         la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
         
         # Free from memory (and indexing)
@@ -301,7 +346,7 @@ class DataGenerator():
         patient_data[OutputAffine.la_affine.value] = la_affine
         
         return patient_data
-
+    """
 
     def generator(self, patient_directory: Union[str, Path], affine_matrix: bool) -> Tuple[Dict[str, np.ndarray]]:
         if self.is_cached(patient_directory):

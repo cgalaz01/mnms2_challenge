@@ -8,7 +8,7 @@ from .loader import DataGenerator
 class TensorFlowDataGenerator():
     
     @staticmethod
-    def _prepare_generators(dg: DataGenerator, batch_size: int,
+    def _prepare_generators(dg: DataGenerator, use_affine: bool, batch_size: int,
                             output_shapes: Tuple[Dict[str, tf.TensorShape]],
                             output_types: Tuple[Dict[str, tf.dtypes.DType]],
                             max_buffer_size: Union[int, None]=None,
@@ -17,7 +17,9 @@ class TensorFlowDataGenerator():
         buffer_size = len(dg.train_list) * 2
         if max_buffer_size is not None:
             buffer_size = min(buffer_size, max_buffer_size)    
-        train_generator = tf.data.Dataset.from_generator(dg.train_generator,
+
+        generator_type = dg.train_affine_generator if use_affine else dg.train_generator
+        train_generator = tf.data.Dataset.from_generator(generator_type,
                                                          output_types=output_types,
                                                          output_shapes=output_shapes)
         train_generator = train_generator.shuffle(buffer_size=buffer_size,
@@ -25,11 +27,13 @@ class TensorFlowDataGenerator():
                                                   reshuffle_each_iteration=True
                                                   ).batch(batch_size).prefetch(2)
         
-        validation_generator = tf.data.Dataset.from_generator(dg.validation_generator,
+        generator_type = dg.validation_affine_generator if use_affine else dg.validation_generator
+        validation_generator = tf.data.Dataset.from_generator(generator_type,
                                                               output_types=output_types)
         validation_generator = validation_generator.batch(batch_size)
         
-        test_generator = tf.data.Dataset.from_generator(dg.test_generator,
+        generator_type = dg.test_affine_generator if use_affine else dg.test_generator
+        test_generator = tf.data.Dataset.from_generator(generator_type,
                                                         output_types=output_types)
         test_generator = test_generator.batch(batch_size)
         
@@ -53,10 +57,11 @@ class TensorFlowDataGenerator():
         # TODO: Change to dynamic input parameters
         output_types = ({'input_sa': float_type,
                          'input_la': float_type},
-                        {'output_sa': tf.uint8,
-                         'output_la': tf.uint8})
+                        {'output_sa': float_type,
+                         'output_la': float_type})
 
-        return TensorFlowDataGenerator._prepare_generators(dg, batch_size,
+        use_affine = False
+        return TensorFlowDataGenerator._prepare_generators(dg, use_affine, batch_size,
                                                            output_shapes,
                                                            output_types,
                                                            max_buffer_size,
@@ -84,10 +89,11 @@ class TensorFlowDataGenerator():
                          'input_la': float_type,
                          'input_sa_affine': tf.float32,
                          'input_la_affine': tf.float32},
-                        {'output_sa': tf.uint8,
-                         'output_la': tf.uint8})
+                        {'output_sa': float_type,
+                         'output_la': float_type})
 
-        return TensorFlowDataGenerator._prepare_generators(dg, batch_size,
+        use_affine = True
+        return TensorFlowDataGenerator._prepare_generators(dg, use_affine, batch_size,
                                                            output_shapes,
                                                            output_types,
                                                            max_buffer_size,

@@ -3,6 +3,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+from tf.layers.transformer import spatial_target_transformer
+
+
 
 def shared_2d_branch(input_shape, kernel_initializer):
     model = keras.Sequential()
@@ -80,3 +83,78 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     
     return model
     
+
+def get_affine_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
+    # A basic model to test pipeline and including affine matrices/spatial transformer
+    
+    kernel_initializer = 'glorot_uniform'
+    
+    input_sa = keras.Input(shape=sa_input_shape, name='input_sa')
+    input_la = keras.Input(shape=la_input_shape, name='input_la')
+    
+    input_sa_affine = keras.Input(shape=(4, 4), name='input_sa_affine', dtype=tf.float32)
+    input_la_affine = keras.Input(shape=(4, 4), name='input_la_affine', dtype=tf.float32)
+    
+    x_sa = input_sa
+    x_la = input_la
+    
+    # Transform the long-axis image to have the same number of channels as the
+    # short-axis (so they can be passed to the shared branch)
+    x_la = layers.Conv2D(sa_input_shape[-1], (3, 3), padding='same',
+                         kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+    
+    shared_layers = shared_2d_branch(sa_input_shape, kernel_initializer)
+    x_la = shared_layers(x_la)
+    x_sa = shared_layers(x_sa)
+    
+    # Now predict each one independantly
+    # Short-Axis branch
+    # Reshape the image so that it is treated as a 3D image (W, H, D) to (W, H, D, C)
+    x_sa = tf.expand_dims(x_sa, axis=-1)
+    
+    x_sa = layers.Conv3D(16, (5, 5, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
+    x_sa = layers.Activation('relu')(x_sa)
+    
+    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
+    x_sa = layers.Activation('relu')(x_sa)
+    
+    x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
+    x_sa = layers.Activation('relu')(x_sa)
+    
+    output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
+                              kernel_initializer=kernel_initializer, name='output_sa')(x_sa)
+    
+    # Long-Axis branch
+    x_la = layers.Conv2D(32, (5, 5), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+    
+    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+    
+    x_la = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+        
+    
+    # output_sa or x_sa as input to spatial transformer
+    x_la_t = spatial_target_transformer(output_sa, input_sa_affine, input_la_affine,
+                                        sa_input_shape, la_input_shape)
+    
+    # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
+    x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
+    
+    x_la = layers.Concatenate()([x_la, x_la_t])
+    
+    x_la = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+    
+    x_la = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
+    
+    output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
+                              kernel_initializer=kernel_initializer, name='output_la')(x_la)
+    
+    model = keras.Model([input_sa, input_la, input_sa_affine, input_la_affine],
+                        [output_sa, output_la])
+    
+    return model

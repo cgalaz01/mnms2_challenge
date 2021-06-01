@@ -50,18 +50,18 @@ if __name__ == '__main__':
         keras.backend.clear_session()
         
         fp = hparams[hyper_parameters.HP_FLOATING_POINT]
-        if fp == '16':        
+        if fp == '16':
             policy = keras.mixed_precision.experimental.Policy('mixed_float16')
             keras.mixed_precision.experimental.set_policy(policy)
     
         batch_size = hparams[hyper_parameters.HP_BATCH_SIZE]
         (train_gen, validation_gen,
-         test_gen, data_gen) = TensorFlowDataGenerator.get_generators(batch_size,
-                                                                      max_buffer_size=None,
-                                                                      floating_precision=fp)
+         test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size,
+                                                                             max_buffer_size=None,
+                                                                             floating_precision=fp)
         
                                                                       
-        model = test_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
+        model = test_model.get_affine_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]

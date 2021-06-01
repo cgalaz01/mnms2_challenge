@@ -352,6 +352,6 @@ class Registration():
         ], axis=1)
         affine = np.transpose(affine)
         # Convert to RAS to match nibabel etc.
-        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine).astype(np.float32)
+        affine = np.matmul(np.diag([-1., -1., 1., 1.]), affine)
         return affine
     
