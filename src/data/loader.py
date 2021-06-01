@@ -36,7 +36,7 @@ class OutputAffine(Enum):
 class DataGenerator():
 
     
-    def __init__(self, floating_precision: str='32') -> None:
+    def __init__(self, floating_precision: str = '32') -> None:
         file_path = Path(__file__).parent.absolute()
         expected_data_directory = os.path.join('..', '..', 'data')
         
@@ -335,48 +335,60 @@ class DataGenerator():
         return output_data
 
     
-    def train_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def train_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
         
     
-    def validation_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def validation_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]
             yield patient_data[1]
             
     
-    def test_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def test_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=False)
             
             yield patient_data[0]
             yield patient_data[1]
             
     
-    def train_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def train_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=True)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
         
     
-    def validation_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def validation_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=True)
             
             yield patient_data[0]
             yield patient_data[1]
             
     
-    def test_affine_generator(self) -> Tuple[Dict[str, np.ndarray]]:
+    def test_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
+            if verbose > 0:
+                print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=True)
             
             yield patient_data[0]
