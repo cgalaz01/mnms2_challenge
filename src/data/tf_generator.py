@@ -9,8 +9,8 @@ class TensorFlowDataGenerator():
     
     @staticmethod
     def _prepare_generators(dg: DataGenerator, batch_size: int,
-                            output_shapes: Tuple[Dict[str, tf.TesnorShape]],
-                            output_types: Tuple[Dict[str, tf.dtypes]],
+                            output_shapes: Tuple[Dict[str, tf.TensorShape]],
+                            output_types: Tuple[Dict[str, tf.dtypes.DType]],
                             max_buffer_size: Union[int, None]=None,
                             floating_precision: str='32') -> Tuple[tf.data.Dataset]:
         

@@ -8,7 +8,7 @@ def cache_data() -> None:
     
     # Remove old cache to force recaching
     print('Removing cache...')
-    shutil.rmtree(dg.cache_directory, ignore_errors=True)
+    #shutil.rmtree(dg.cache_directory, ignore_errors=True)
     
     print('Saving new cache...')
     # TODO: make verbose
