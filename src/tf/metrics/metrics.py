@@ -10,8 +10,6 @@ def dice(y_true, y_pred):
     # Expected y_pred to be 'logits'
     y_pred = tf.nn.softmax(y_pred)
     
-    #y_true_flatten = tf.keras.layers.Flatten(dtype=tf.float32)(y_true)
-    #y_pred_flatten = tf.keras.layers.Flatten(dtype=tf.float32)(y_pred)
     dim = tf.reduce_prod(tf.shape(y_true)[1:])
     y_true_flatten = tf.reshape(y_true, [-1, dim])
     y_pred_flatten = tf.reshape(y_pred, [-1, dim])

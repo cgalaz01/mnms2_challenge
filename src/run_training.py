@@ -13,7 +13,7 @@ from tensorboard.plugins.hparams import api as hp
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator
 from tf.models import test_model
-from tf.losses.loss import FocalLoss
+from tf.losses.loss import FocalLoss, TverskyLoss
 from tf.metrics.metrics import dice
 
 
@@ -70,6 +70,8 @@ if __name__ == '__main__':
             
         if hparams[hyper_parameters.HP_LOSS] == 'focal':
             loss = FocalLoss(0.25, 2.0)
+        elif hparams[hyper_parameters.HP_LOSS] == 'tversky':
+            loss = TverskyLoss(0.5, 0.5)
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
             
