@@ -29,10 +29,15 @@ class TensorFlowDataGenerator():
         
         generator_type = dg.validation_affine_generator if use_affine else dg.validation_generator
         validation_generator = tf.data.Dataset.from_generator(generator_type,
-                                                              output_types=output_types)
+                                                              output_types=output_types,
+                                                              output_shapes=output_shapes)
         validation_generator = validation_generator.batch(batch_size)
         
-        generator_type = dg.test_affine_generator if use_affine else dg.test_generator
+        inference = False
+        if inference:
+            generator_type = dg.test_affine_generator_inference if use_affine else dg.test_generator_inference
+        else:
+            generator_type = dg.test_affine_generator if use_affine else dg.test_generator
         test_generator = tf.data.Dataset.from_generator(generator_type,
                                                         output_types=output_types)
         test_generator = test_generator.batch(batch_size)
