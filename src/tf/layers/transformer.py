@@ -23,6 +23,11 @@ class TargetAffineLayer(Layer):
         return affine_transform
         
     
+    def get_config(self):
+        config = super().get_config().copy()
+        return config
+    
+    
     def call(self, inputs):
         """
         Parameters
@@ -54,6 +59,13 @@ class TargetShapePad(Layer):
         self.paddings = [(0, 0),
                          (0, 0),
                          (0, 0)]
+        
+        self.init_config = {'image_shape': image_shape, 'target_shape': target_shape, **kwargs}
+    
+    
+    def get_config(self):
+        return self.init_config
+    
     
     def call(self, inputs):
         padded_image = tf.keras.layers.ZeroPadding3D(self.paddings)(inputs)
@@ -76,6 +88,12 @@ class TargetShapeCrop(Layer):
                          (0, 0),
                          (0, 16)]
         
+        self.init_config = {'image_shape': image_shape, 'target_shape': target_shape, **kwargs}
+        
+    
+    def get_config(self):
+        return self.init_config
+
 
     def call(self, inputs):
         cropped_image = tf.keras.layers.Cropping3D(self.cropping)(inputs)

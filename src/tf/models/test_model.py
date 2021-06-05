@@ -5,37 +5,49 @@ from tensorflow.keras import layers
 
 from tf.layers.transformer import spatial_target_transformer
 
-
-
+    
 def shared_2d_branch(input_shape, kernel_initializer):
-    model = keras.Sequential()
+    shared_input = keras.layers.Input(shape=input_shape)
     
-    """
-    model.add(layers.DepthwiseConv2D((9, 9), padding='same', activation='relu',
-                            input_shape=input_shape, kernel_initializer=kernel_initializer))
-    model.add(layers.DepthwiseConv2D((7, 7), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.DepthwiseConv2D((5, 5), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.DepthwiseConv2D((3, 3), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    """
-    model.add(layers.Conv2D(32, (9, 9), padding='same', activation='relu',
-                            input_shape=input_shape, kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(64, (7, 7), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(128, (5, 5), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
-    model.add(layers.Conv2D(17, (3, 3), padding='same', activation='relu',
-                            kernel_initializer=kernel_initializer))
+    x = layers.Conv2D(32, (9, 9), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer)(shared_input)
+    x = layers.Conv2D(64, (7, 7), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer)(x)
+    x = layers.Conv2D(128, (5, 5), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer)(x)
+    x = layers.Conv2D(17, (3, 3), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer)(x)
+    x = layers.DepthwiseConv2D((7, 7), padding='same', activation='relu',
+                               kernel_initializer=kernel_initializer)(x)
     
-    return model
+    shared_model = keras.models.Model(shared_input, x)
+    return shared_model
+
+
+"""
+def shared_2d_branch(input_shape, kernel_initializer):
+    layer_list = []
     
+    layer_list.append(layers.Conv2D(32, (9, 9), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer))
+    layer_list.append(layers.Conv2D(64, (7, 7), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer))
+    layer_list.append(layers.Conv2D(128, (5, 5), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer))
+    layer_list.append(layers.Conv2D(17, (3, 3), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer))
+    layer_list.append(layers.DepthwiseConv2D((7, 7), padding='same', activation='relu',
+                               kernel_initializer=kernel_initializer))
     
+    return layer_list
+
+
+def pass_value_to_layers(x, layer_list):
+    for layer in layer_list:
+        x = layer(x)
+        
+    return x
+"""
 
 def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     # A basic model to test pipeline
@@ -55,7 +67,6 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = layers.Activation('relu')(x_la)
     
     shared_layers = shared_2d_branch(sa_input_shape, kernel_initializer)
-    x_la = shared_layers(x_la)
     x_sa = shared_layers(x_sa)
     
     # Now predict each one independantly
@@ -74,6 +85,8 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     
     output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
                               kernel_initializer=kernel_initializer, name='output_sa')(x_sa)
+    
+    x_la = shared_layers(x_la)
     
     # Long-Axis branch
     x_la = layers.Conv2D(32, (5, 5), padding='same', kernel_initializer=kernel_initializer)(x_la)
@@ -114,8 +127,9 @@ def get_affine_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model
                          kernel_initializer=kernel_initializer)(x_la)
     x_la = layers.Activation('relu')(x_la)
     
-    shared_layers = shared_2d_branch(sa_input_shape, kernel_initializer)
-    x_la = shared_layers(x_la)
+    #shared_layers = shared_2d_branch(sa_input_shape, kernel_initializer)
+    shared_layers = layers.Conv2D(17, (9, 9), padding='same', activation='relu',
+                      kernel_initializer=kernel_initializer)
     x_sa = shared_layers(x_sa)
     
     # Now predict each one independantly
@@ -135,6 +149,7 @@ def get_affine_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model
     output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
                               kernel_initializer=kernel_initializer, name='output_sa')(x_sa)
     
+    x_la = shared_layers(x_la)
     # Long-Axis branch
     
     x_la = layers.Conv2D(32, (5, 5), padding='same', kernel_initializer=kernel_initializer)(x_la)
