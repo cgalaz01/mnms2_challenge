@@ -7,6 +7,7 @@ __pycache__/
 data/training/
 data/validation/
 data_cache/
+data_cache.zip
 
 # Tmp files
 logs/
