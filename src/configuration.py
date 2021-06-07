@@ -17,6 +17,7 @@ class HyperParameters():
     def __init__(self, search_type: str):
         # TODO: Load from file rather than hard-coded in this file
         self.HP_FLOATING_POINT = HParamS('floating_point', hp.Discrete(['16']))
+        self.HP_XLA = HParamS('xla_compiler', hp.Discrete([False]))
         self.HP_EPOCHS = HParamS('epochs', hp.Discrete([100]))
         self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([1]))
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.0005]))
@@ -26,6 +27,7 @@ class HyperParameters():
         
         self.parameter_dict = {}
         self.parameter_dict[self.HP_FLOATING_POINT] = self.HP_FLOATING_POINT.domain.values
+        self.parameter_dict[self.HP_XLA] = self.HP_XLA.domain.values
         self.parameter_dict[self.HP_EPOCHS] = self.HP_EPOCHS.domain.values
         self.parameter_dict[self.HP_BATCH_SIZE] = self.HP_BATCH_SIZE.domain.values
         self.parameter_dict[self.HP_LEANRING_RATE] = self.HP_LEANRING_RATE.domain.values

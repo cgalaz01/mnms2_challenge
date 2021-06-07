@@ -54,6 +54,10 @@ if __name__ == '__main__':
             policy = keras.mixed_precision.experimental.Policy('mixed_float16')
             keras.mixed_precision.experimental.set_policy(policy)
     
+        use_xla = hparams[hyper_parameters.HP_XLA]
+        if use_xla:
+            tf.config.optimizer.set_jit('autoclustering')
+    
         batch_size = hparams[hyper_parameters.HP_BATCH_SIZE]
         (train_gen, validation_gen,
          test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size,
