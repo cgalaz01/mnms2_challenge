@@ -12,7 +12,7 @@ from tensorboard.plugins.hparams import api as hp
 
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator
-from tf.models import test_model
+from tf.models import multi_stage_model
 from tf.losses.loss import FocalLoss, TverskyLoss
 from tf.metrics.metrics import dice
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
                                                                              floating_precision=fp)
         
                                                                       
-        model = test_model.get_affine_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
+        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
@@ -81,7 +81,7 @@ if __name__ == '__main__':
             metrics=[dice])
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
-        prefix = 'test_model'
+        prefix = 'multi_stage_model'
         checkpoint_path = os.path.join('tmp', 'checkpoint', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
         model.fit(x=train_gen,
                   validation_data=validation_gen,
