@@ -114,19 +114,145 @@ def _inception_block_b(x, num_filters, kernel_initializer, suffix, index):
     return x
     
     
+def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
+                                   kernel_initializer, suffix, index):
+    shared_down_level = []
+    for i in range(num_pyramid_layers):
+        i_s = str(i + 1)
+        shared_layers = []
+        shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+                                           kernel_initializer=kernel_initializer,
+                                           name=suffix + '_pyramid_down_conv2d_' + i_s + '_1_' + index))
+        shared_layers.append(layers.Activation('relu', name=suffix + '_pyramid_down_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.MaxPooling2D((2, 2), padding='same',
+                             name=suffix + '_pyramid_down_max_pooling_' + i_s + '_3_' + index))
+        x_pad_size = input_shape[0] // 4 #(2**(i+1))
+        y_pad_size = input_shape[1] // 4 #(2**(i+1))
+        shared_layers.append(layers.ZeroPadding2D((x_pad_size, y_pad_size),
+                             name=suffix + '_pyramid_down_padding_' + i_s + '_4_' + index))
+        
+        shared_down_level.append(shared_layers)
+    
+    
+    shared_up_level = []
+    for i in range(num_pyramid_layers):
+        i_s = str(i + 1)
+        shared_layers = []
+        shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+                                           kernel_initializer=kernel_initializer,
+                                           name=suffix + '_pyramid_up_conv2d_' + i_s + '_1_' + index))
+        shared_layers.append(layers.Activation('relu', name=suffix + '_pyramid_up_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.UpSampling2D((2, 2), interpolation='bilinear',
+                                                 name=suffix + '_pyramid_upsampling_' + i_s + '_3_' + index))
+        x_crop_size = input_shape[0] // 2
+        y_crop_size = input_shape[1] // 2
+        shared_layers.append(layers.Cropping2D((x_crop_size, y_crop_size),
+                             name=suffix + '_pyramid_up_cropping_' + i_s + '_4_' + index))
+        
+        shared_up_level.append(shared_layers)
+    
+    
+    shared_skip = []
+    for i in range(num_pyramid_layers - 1):
+        i_s = str(i + 1)
+        shared_layers = []
+        shared_layers.append(layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+                                           kernel_initializer=kernel_initializer,
+                                           name=suffix + '_pyramid_skip_conv2d_' + i_s + '_1_' + index))
+        shared_layers.append(layers.Activation('relu', name=suffix + '_pyramid_skip_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.Add(name=suffix + '_pyramid_skip_add_' + i_s + '_3_' + index))
+        
+        shared_skip.append(shared_layers)
+    
+    
+    return shared_down_level, shared_up_level, shared_skip
+
+    
+def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_initializer,
+                          suffix, index):
+    
+    x_input = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+                            kernel_initializer=kernel_initializer,
+                            name=suffix + '_pyramid_input_conv2d_1_' + index)(x)
+    x_input = layers.Activation('relu', name=suffix + '_pyramid_input_activation_2_' + index)(x_input)
+    
+
+    # Initialise shared layers for the pyramid
+    shared_down_level, shared_up_level, shared_skip = _shared_feature_pyramid_layers(pyramid_layers,
+                                                                                     input_shape,
+                                                                                     num_filters,
+                                                                                     kernel_initializer,
+                                                                                     suffix,
+                                                                                     index)
+    pyramid_output = []
+    
+    while True:
+        x_skip = []
+        x = x_input
+        # Downsampling
+        for i in range(pyramid_layers):
+            shared_layers = shared_down_level[i]
+            for j in range(len(shared_layers)):
+                x = shared_layers[j](x)
+            x_skip.append(x)        
+
+        # Remove last element, as last layer does not have a skip connection
+        del x_skip[-1]
+        x_skip.reverse()
+        
+        # Upsampling
+        
+        for i in range(pyramid_layers):
+            # Pass skip data and add with main data flow
+            if i > 0:
+                shared_skip_layers = shared_skip[i - 1]
+                x_s = x_skip[i - 1]
+                for s in range(len(shared_skip_layers) - 1):
+                    x_s = shared_skip_layers[s](x_s)
+                x = shared_skip_layers[-1]([x_s, x])
+            
+            shared_layers = shared_up_level[i]
+            for j in range(len(shared_layers)):
+                x = shared_layers[j](x)
+        
+                
+        pyramid_output.append(x)
+        
+        pyramid_layers -= 1
+        if pyramid_layers <= 0:
+            break
+    
+        
+    x = layers.Concatenate(axis=-1,
+                           name=suffix + '_pyramid_output_concatenate_1_' + index)(pyramid_output)
+    x = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+                      kernel_initializer=kernel_initializer,
+                      name=suffix + '_pyramid_output_conv2d_2_' + index)(x)
+    x = layers.Activation('relu', name=suffix + '_pyramid_output_activation_3_' + index)(x)
+        
+    return x
+        
     
 def _shared_2d_branch(input_shape, kernel_initializer) -> keras.Model:
     shared_input = keras.layers.Input(shape=input_shape)
     suffix = 'shared_branch'
     
     x = shared_input
-    x = _inception_block_a(x, num_filters=64, kernel_initializer=kernel_initializer,
-                           suffix=suffix, index='1')
-    x = _inception_block_a(x, num_filters=64, kernel_initializer=kernel_initializer,
-                           suffix=suffix, index='2')
-    x = _inception_block_b(x, num_filters=64, kernel_initializer=kernel_initializer,
-                           suffix=suffix, index='3')
     
+    # Pass input through inception pipeline
+    x_inc = _inception_block_a(x, num_filters=64, kernel_initializer=kernel_initializer,
+                               suffix=suffix, index='1')
+    x_inc = _inception_block_a(x_inc, num_filters=64, kernel_initializer=kernel_initializer,
+                               suffix=suffix, index='2')
+    x_inc = _inception_block_b(x_inc, num_filters=64, kernel_initializer=kernel_initializer,
+                               suffix=suffix, index='3')
+    
+    # Pass input through multi-level feature pyramid pipeline
+    x_pyr = feature_pyramid_layer(x, pyramid_layers=3, input_shape=input_shape,
+                                  num_filters=64, kernel_initializer=kernel_initializer,
+                                  suffix=suffix, index='1')
+    
+    x = layers.Add(name=suffix + '_add_1')([x_inc, x_pyr])
     
     shared_model = keras.models.Model(shared_input, x)
     return shared_model

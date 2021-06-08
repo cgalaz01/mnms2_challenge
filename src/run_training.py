@@ -73,6 +73,7 @@ if __name__ == '__main__':
             optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
             
         if hparams[hyper_parameters.HP_LOSS] == 'focal':
+            # α should be decreased slightly as γ is increased
             loss = FocalLoss(0.25, 2.0)
         elif hparams[hyper_parameters.HP_LOSS] == 'tversky':
             loss = TverskyLoss(0.5, 0.5)
