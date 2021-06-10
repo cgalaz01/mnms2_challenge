@@ -305,7 +305,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa = tf.stack(x_sa_list, axis=-2)
     
     # Short-Axis branch
-    x_sa = layers.Conv3D(16, (5, 5, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
+    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
     x_sa = layers.Activation('relu')(x_sa)
     
     x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
@@ -321,7 +321,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = shared_layers(x_la)
     
     # Long-Axis branch
-    x_la = layers.Conv2D(32, (5, 5), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
     x_la = layers.Activation('relu')(x_la)
     
     x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
@@ -340,6 +340,9 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
     
     x_la = layers.Concatenate()([x_la, x_la_t])
+    
+    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Activation('relu')(x_la)
     
     output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
                               kernel_initializer=kernel_initializer, name='output_la')(x_la)
