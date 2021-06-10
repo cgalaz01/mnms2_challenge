@@ -240,11 +240,12 @@ def _shared_2d_branch(input_shape, kernel_initializer, downsample=False) -> kera
     
     x = shared_input
     
+    target_shape = input_shape
     if downsample:
         # Downsample image to reduce total memory requirement
         original_dtype = x.dtype
-        downsmapled_input_shape = (input_shape[0] // 2, input_shape[1] //2)
-        x = tf.image.resize(x, downsmapled_input_shape, method=tf.image.ResizeMethod.BILINEAR,
+        target_shape = (input_shape[0] // 2, input_shape[1] //2)
+        x = tf.image.resize(x, target_shape, method=tf.image.ResizeMethod.BILINEAR,
                             antialias=True, name=suffix + 'image_resize_down')
         # Cast image back to original as 'resize' returns a Tensor of float32
         x = tf.cast(x, original_dtype, name=suffix + 'image_casting_down')
@@ -260,20 +261,20 @@ def _shared_2d_branch(input_shape, kernel_initializer, downsample=False) -> kera
                                suffix=suffix, index='4')
     
     # Pass input through multi-level feature pyramid pipeline
-    x_pyr = feature_pyramid_layer(x, pyramid_layers=3, input_shape=downsmapled_input_shape,
-                                  num_filters=64, kernel_initializer=kernel_initializer,
+    x_pyr = feature_pyramid_layer(x, pyramid_layers=3, input_shape=target_shape,
+                                  num_filters=128, kernel_initializer=kernel_initializer,
                                   suffix=suffix, index='1')
     
     x = layers.Add(name=suffix + '_add_1')([x_inc, x_pyr])
     
     if downsample:
         # Upsample image back to original resolution
-        upsample_input_shape = (input_shape[0], input_shape[1])
-        x = tf.image.resize(x, upsample_input_shape, method=tf.image.ResizeMethod.BILINEAR,
+        target_shape = (input_shape[0], input_shape[1])
+        x = tf.image.resize(x, target_shape, method=tf.image.ResizeMethod.BILINEAR,
                             name=suffix + 'image_resize_up')
         x = tf.cast(x, original_dtype, name=suffix + 'image_casting_up')
         
-        shared_model = keras.models.Model(shared_input, x)
+    shared_model = keras.models.Model(shared_input, x)
     return shared_model
 
 
