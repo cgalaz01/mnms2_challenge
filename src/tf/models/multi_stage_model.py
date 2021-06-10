@@ -11,37 +11,37 @@ def _inception_block_a(x, num_filters, kernel_initializer, suffix, index):
     # Branch 1
     x1 = layers.MaxPooling2D(pool_size=(2, 2), strides=(1, 1), padding='same',
                              name=suffix + '_inception_a_max_pooling_1_1_' + index)(x)
-    x1 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x1 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_1_2_' + index)(x1)
     x1 = layers.Activation('relu', name=suffix + '_inception_a_activation_1_3_' + index)(x1)
     
     # Branch 2
-    x2 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x2 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_2_1_' + index)(x)
     x2 = layers.Activation('relu', name=suffix + '_inception_a_activation_2_2_' + index)(x2)
-    x2 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+    x2 = layers.Conv2D(num_filters // 2, (3, 3), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_2_3_' + index)(x2)
     x2 = layers.Activation('relu', name=suffix + '_inception_a_activation_2_4_' + index)(x2)
     
     # Branch 3
-    x3 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_3_1_' + index)(x)
     x3 = layers.Activation('relu', name=suffix + '_inception_a_activation_3_2_' + index)(x3)
-    x3 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (3, 3), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_3_3_' + index)(x3)
     x3 = layers.Activation('relu', name=suffix + '_inception_a_activation_3_4_' + index)(x3)
-    x3 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (3, 3), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_3_5_' + index)(x3)
     x3 = layers.Activation('relu', name=suffix + '_inception_a_activation_3_6_' + index)(x3)
     
     # Branch 4
-    x4 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x4 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_a_conv2d_4_1_' + index)(x)
     x4 = layers.Activation('relu', name=suffix + '_inception_a_activation_4_2_' + index)(x4)
@@ -49,7 +49,7 @@ def _inception_block_a(x, num_filters, kernel_initializer, suffix, index):
     # Concatenate branches
     x = layers.Concatenate(axis=-1, name=suffix + '_inception_a_concatenate_' + index)([x, x1, x2, x3, x4])
     # Reduce filter size
-    x = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                       kernel_initializer=kernel_initializer,
                       name=suffix + '_inception_a_conv2d_merge_' + index)(x)
     
@@ -58,47 +58,47 @@ def _inception_block_a(x, num_filters, kernel_initializer, suffix, index):
 
 def _inception_block_b(x, num_filters, kernel_initializer, suffix, index):
     # Branch 1
-    x1 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x1 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_1_1_' + index)(x)
     x1 = layers.Activation('relu', name=suffix + '_inception_b_activation_1_2_' + index)(x1)
     
     # Branch 2
-    x2 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x2 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_2_1_' + index)(x)
     x2 = layers.Activation('relu', name=suffix + '_inception_b_activation_2_2_' + index)(x2)
-    x2 = layers.SeparableConv2D(num_filters, (5, 5), (1, 1), padding='same',
+    x2 = layers.SeparableConv2D(num_filters // 2, (5, 5), (1, 1), padding='same',
                                 depthwise_initializer=kernel_initializer,
                                 pointwise_initializer=kernel_initializer,
                                 name=suffix + '_inception_b_seperable_conv2d_2_3_' + index)(x2)
     x2 = layers.Activation('relu', name=suffix + '_inception_b_activation_2_4_' + index)(x2)
     
     # Branch 3
-    x3 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_3_1_' + index)(x)
     x3 = layers.Activation('relu', name=suffix + '_inception_b_activation_3_2_' + index)(x3)
-    x3 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_3_3_' + index)(x3)
     x3 = layers.Activation('relu', name=suffix + '_inception_b_activation_3_4_' + index)(x3)
-    x3 = layers.SeparableConv2D(num_filters, (7, 7), (1, 1), padding='same',
+    x3 = layers.SeparableConv2D(num_filters // 2, (1, 7), (1, 1), padding='same',
                                 depthwise_initializer=kernel_initializer,
                                 pointwise_initializer=kernel_initializer,
                                 name=suffix + '_inception_b_seperable_conv2d_3_5_' + index)(x3)
     x3 = layers.Activation('relu', name=suffix + '_inception_b_activation_3_6_' + index)(x3)
     
     # Branch 3
-    x4 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x4 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_4_1_' + index)(x)
     x4 = layers.Activation('relu', name=suffix + '_inception_b_activation_4_2_' + index)(x4)
-    x4 = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
+    x4 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_4_3_' + index)(x4)
     x4 = layers.Activation('relu', name=suffix + '_inception_b_activation_4_4_' + index)(x4)
-    x4 = layers.SeparableConv2D(num_filters, (9, 9), (1, 1), padding='same',
+    x4 = layers.SeparableConv2D(num_filters // 2, (9, 9), (1, 1), padding='same',
                                 depthwise_initializer=kernel_initializer,
                                 pointwise_initializer=kernel_initializer,
                                 name=suffix + '_inception_b_seperable_conv2d_4_5_' + index)(x4)
@@ -126,8 +126,8 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
         shared_layers.append(layers.Activation('relu', name=suffix + '_pyramid_down_activation_' + i_s + '_2_' + index))
         shared_layers.append(layers.MaxPooling2D((2, 2), padding='same',
                              name=suffix + '_pyramid_down_max_pooling_' + i_s + '_3_' + index))
-        x_pad_size = input_shape[0] // 4 #(2**(i+1))
-        y_pad_size = input_shape[1] // 4 #(2**(i+1))
+        x_pad_size = input_shape[0] // 4
+        y_pad_size = input_shape[1] // 4
         shared_layers.append(layers.ZeroPadding2D((x_pad_size, y_pad_size),
                              name=suffix + '_pyramid_down_padding_' + i_s + '_4_' + index))
         
@@ -250,12 +250,14 @@ def _shared_2d_branch(input_shape, kernel_initializer, downsample=False) -> kera
         x = tf.cast(x, original_dtype, name=suffix + 'image_casting_down')
     
     # Pass input through inception pipeline
-    x_inc = _inception_block_a(x, num_filters=64, kernel_initializer=kernel_initializer,
+    x_inc = _inception_block_a(x, num_filters=32, kernel_initializer=kernel_initializer,
                                suffix=suffix, index='1')
     x_inc = _inception_block_a(x_inc, num_filters=64, kernel_initializer=kernel_initializer,
                                suffix=suffix, index='2')
-    x_inc = _inception_block_b(x_inc, num_filters=64, kernel_initializer=kernel_initializer,
+    x_inc = _inception_block_a(x_inc, num_filters=64, kernel_initializer=kernel_initializer,
                                suffix=suffix, index='3')
+    x_inc = _inception_block_b(x_inc, num_filters=128, kernel_initializer=kernel_initializer,
+                               suffix=suffix, index='4')
     
     # Pass input through multi-level feature pyramid pipeline
     x_pyr = feature_pyramid_layer(x, pyramid_layers=3, input_shape=downsmapled_input_shape,
@@ -289,7 +291,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = input_la
     
     
-    shared_layers = _shared_2d_branch(la_input_shape, kernel_initializer)
+    shared_layers = _shared_2d_branch(la_input_shape, kernel_initializer, downsample=False)
         
     # Create 'channel' axis that will be carried over when unstacking
     x_sa = tf.expand_dims(x_sa, axis=-1)
