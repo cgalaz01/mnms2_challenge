@@ -15,7 +15,7 @@ def cache_data() -> None:
     dg.train_list = dg.get_patient_list(dg.train_directory)
     
     print('Saving new cache...')
-    for i in dg.train_generator(verbose=1):
+    for i in dg.train_affine_generator(verbose=1):
         continue
     
 

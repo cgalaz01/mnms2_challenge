@@ -79,11 +79,11 @@ def _inception_block_b(x, num_filters, kernel_initializer, suffix, index):
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_3_1_' + index)(x)
     x3 = layers.Activation('relu', name=suffix + '_inception_b_activation_3_2_' + index)(x3)
-    x3 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
+    x3 = layers.Conv2D(num_filters // 2, (3, 3), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_3_3_' + index)(x3)
     x3 = layers.Activation('relu', name=suffix + '_inception_b_activation_3_4_' + index)(x3)
-    x3 = layers.SeparableConv2D(num_filters // 2, (1, 7), (1, 1), padding='same',
+    x3 = layers.SeparableConv2D(num_filters // 2, (7, 7), (1, 1), padding='same',
                                 depthwise_initializer=kernel_initializer,
                                 pointwise_initializer=kernel_initializer,
                                 name=suffix + '_inception_b_seperable_conv2d_3_5_' + index)(x3)
@@ -94,7 +94,7 @@ def _inception_block_b(x, num_filters, kernel_initializer, suffix, index):
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_4_1_' + index)(x)
     x4 = layers.Activation('relu', name=suffix + '_inception_b_activation_4_2_' + index)(x4)
-    x4 = layers.Conv2D(num_filters // 2, (1, 1), (1, 1), padding='same',
+    x4 = layers.Conv2D(num_filters // 2, (3, 3), (1, 1), padding='same',
                        kernel_initializer=kernel_initializer,
                        name=suffix + '_inception_b_conv2d_4_3_' + index)(x4)
     x4 = layers.Activation('relu', name=suffix + '_inception_b_activation_4_4_' + index)(x4)

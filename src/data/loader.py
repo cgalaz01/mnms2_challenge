@@ -56,7 +56,7 @@ class DataGenerator():
         self.test_list = self.get_patient_list(self.testing_directory)
         
         self.target_spacing = (1.25, 1.25, 10)
-        self.target_size = (256, 256, 17)
+        self.target_size = (160, 160, 17)
         
         self.n_classes = 4  # Including background
 
@@ -267,14 +267,15 @@ class DataGenerator():
         return patient_data
     
     
-    def to_numpy(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, np.ndarray]:
+    def to_numpy(self, patient_data: Dict[str, sitk.Image], has_affine_matrix: bool) -> Dict[str, np.ndarray]:
         
         # Handle 'ExtraType' data first
-        sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
-                                                                patient_data[ExtraType.reg_affine.value])
-        sa_affine = sa_affine.astype(np.float32)
-        la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
-        la_affine = la_affine.astype(np.float32)
+        if has_affine_matrix:
+            sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
+                                                                    patient_data[ExtraType.reg_affine.value])
+            sa_affine = sa_affine.astype(np.float32)
+            la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
+            la_affine = la_affine.astype(np.float32)
         
         # Free from memory (and indexing)
         del patient_data[ExtraType.reg_affine.value]
@@ -306,8 +307,9 @@ class DataGenerator():
                 
             patient_data[key] = numpy_image
         
-        patient_data[OutputAffine.sa_affine.value] = sa_affine
-        patient_data[OutputAffine.la_affine.value] = la_affine
+        if has_affine_matrix:
+            patient_data[OutputAffine.sa_affine.value] = sa_affine
+            patient_data[OutputAffine.la_affine.value] = la_affine
         
         return patient_data
     
@@ -354,7 +356,7 @@ class DataGenerator():
             self.save_cache(patient_directory, patient_data)
 
         
-        patient_data = self.to_numpy(patient_data)
+        patient_data = self.to_numpy(patient_data, affine_matrix)
     
         output_data = self.to_structure(patient_data, affine_matrix, has_gt)
         return output_data

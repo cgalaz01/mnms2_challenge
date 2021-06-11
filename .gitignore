@@ -6,8 +6,8 @@ __pycache__/
 # Data
 data/training/
 data/validation/
-data_cache/
-data_cache.zip
+data_cache*/
+data_cache*.zip
 Submission
 
 # Tmp files
