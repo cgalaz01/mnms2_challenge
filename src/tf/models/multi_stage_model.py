@@ -306,14 +306,17 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa = tf.stack(x_sa_list, axis=-2)
     
     # Short-Axis branch
-    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
-    x_sa = layers.Activation('relu')(x_sa)
+    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='sa_conv3d_1_1')(x_sa)
+    x_sa = layers.Activation('relu', name='sa_activation_1_2')(x_sa)
     
-    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
-    x_sa = layers.Activation('relu')(x_sa)
+    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='sa_conv3d_2_1')(x_sa)
+    x_sa = layers.Activation('relu', name='sa_activation_2_2')(x_sa)
     
-    x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer)(x_sa)
-    x_sa = layers.Activation('relu')(x_sa)
+    x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='sa_conv3d_3_1')(x_sa)
+    x_sa = layers.Activation('relu', name='sa_activation_3_2')(x_sa)
     
     output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
                               kernel_initializer=kernel_initializer, name='output_sa')(x_sa)
@@ -322,16 +325,20 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = shared_layers(x_la)
     
     # Long-Axis branch
-    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
-    x_la = layers.Activation('relu')(x_la)
+    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='la_conv2d_1_1')(x_la)
+    x_la = layers.Activation('relu', name='la_activation_1_2')(x_la)
     
-    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
-    x_la = layers.Activation('relu')(x_la)
+    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='la_conv2d_2_1')(x_la)
+    x_la = layers.Activation('relu', name='la_activation_2_2')(x_la)
     
-    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
-    x_la = layers.Activation('relu')(x_la)
+    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='la_conv2d_3_1')(x_la)
+    x_la = layers.Activation('relu', name='la_activation_3_2')(x_la)
       
-    x_la = layers.Conv2D(num_classes, (1, 1), padding='same', kernel_initializer=kernel_initializer)(x_la)
+    x_la = layers.Conv2D(num_classes, (1, 1), padding='same', kernel_initializer=kernel_initializer,
+                         name='la_conv2d_4_1')(x_la)
     
     # output_sa or x_sa as input to spatial transformer
     x_la_t = spatial_target_transformer(output_sa, input_sa_affine, input_la_affine,
@@ -340,10 +347,11 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
     
-    x_la = layers.Concatenate()([x_la, x_la_t])
+    x_la = layers.Concatenate(name='la_concatenate')([x_la, x_la_t])
     
-    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer)(x_la)
-    x_la = layers.Activation('relu')(x_la)
+    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
+                         name='la_conv2d_5_1')(x_la)
+    x_la = layers.Activation('relu', name='la_activation_5_2')(x_la)
     
     output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
                               kernel_initializer=kernel_initializer, name='output_la')(x_la)

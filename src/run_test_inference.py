@@ -6,13 +6,17 @@ import SimpleITK as sitk
 
 from data import TensorFlowDataGenerator
 from tf.losses.loss import FocalLoss
+from tf.layers.transformer import TargetAffineLayer, TargetShapePad, TargetShapeCrop
 from tf.metrics.metrics import dice
 
 
 def load_model(modelpath) -> tf.keras.Model:
     tf.keras.backend.clear_session()
     model = tf.keras.models.load_model(modelpath, custom_objects={'dice': dice,
-                                                                  'FocalLoss': FocalLoss})
+                                                                  'FocalLoss': FocalLoss,
+                                                                  'TargetAffineLayer': TargetAffineLayer,
+                                                                  'TargetShapePad': TargetShapePad,
+                                                                  'TargetShapeCrop': TargetShapeCrop})
     
     return model
 
@@ -69,6 +73,9 @@ def predict(model) -> None:
     
 if __name__ == '__main__':
     model_path = 'path/to/model'
-    model_path = 'D:/Documents/Projects/mnms2/mnms2_challenge/src/tmp/checkpoint/test_model_20210605-160847'
-    model = load_model(model_path)
-    predict(model)
+    model_path = 'D:/Documents/Projects/mnms2/mnms2_challenge/src/tmp/multi_stage_model_20210615-153716'
+    run_on_cpu = True
+    device = 'cpu:0' if run_on_cpu else 'gpu:0'
+    with tf.device(device):
+        model = load_model(model_path)
+        predict(model)
