@@ -1,0 +1,14 @@
+name: mnms2
+channels:
+  - defaults
+dependencies:
+  - python==3.7.10
+  - numpy==1.19.5
+  - cudatoolkit==11.0.3
+  - cudnn==8.0.5.39
+  - pip
+  - pip:
+      - tensorflow==2.5.0
+      - simpleitk==2.0.2
+      - voxelmorph==0.1
+
