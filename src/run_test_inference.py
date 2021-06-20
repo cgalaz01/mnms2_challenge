@@ -37,7 +37,7 @@ def save_predictions(sa_prediction: sitk.Image, la_prediction: sitk.Image,
     sitk.WriteImage(la_prediction, la_file_output)
     
     
-def predict(model) -> None:    
+def test_prediction(model: tf.keras.Model) -> None:    
     (train_gen, validation_gen,
      test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size=1,
                                                                          max_buffer_size=None,
@@ -68,14 +68,12 @@ def predict(model) -> None:
         
         patient_id = os.path.basename(os.path.normpath(patient_directory))
         save_predictions(output_sa, output_la, patient_id, phase)
-        break
       
     
 if __name__ == '__main__':
     model_path = 'path/to/model'
-    model_path = 'D:/Documents/Projects/mnms2/mnms2_challenge/src/tmp/multi_stage_model_20210615-153716'
     run_on_cpu = True
     device = 'cpu:0' if run_on_cpu else 'gpu:0'
     with tf.device(device):
         model = load_model(model_path)
-        predict(model)
+        test_prediction(model)

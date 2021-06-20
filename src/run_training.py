@@ -20,6 +20,7 @@ from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
 from tf.losses.loss import FocalLoss, TverskyLoss
 from tf.metrics.metrics import dice
+from run_test_inference import test_prediction
 
 
 __SEED = 1456
@@ -139,4 +140,4 @@ if __name__ == '__main__':
         
         model.load_weights(checkpoint_path)
         visual_summary(model, data_gen, 'tmp/output_results')
-
+        test_prediction(model)
