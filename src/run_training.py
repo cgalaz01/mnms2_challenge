@@ -62,10 +62,10 @@ def visual_summary(model: keras.Model, generator: DataGenerator,
         prediction_dict = {name: pred for name, pred in zip(model.output_names, prediction_list)}
 
         predict_sa = np.argmax(prediction_dict['output_sa'][0], axis=-1).astype(np.uint8)
-        gt_sa = np.argmax(data[1]['output_sa'])
+        gt_sa = np.argmax(data[1]['output_sa'], axis=-1)
         
         predict_la = np.argmax(prediction_dict['output_la'][0], axis=-1).astype(np.uint8)
-        gt_la = np.argmax(data[1]['output_la'])
+        gt_la = np.argmax(data[1]['output_la'], axis=-1)
         
         output_file = os.path.join(output_path, str(i) + '.png')
         i += 1
