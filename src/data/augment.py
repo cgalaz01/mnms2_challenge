@@ -9,9 +9,13 @@ class DataAugmentation():
     
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
+        
         self.min_z_rotation_degrees = -180
         self.max_z_rotation_degrees = 180
     
+        self.min_gaussian_blur_sigma = 0
+        self.min_gaussian_blur_sigma = 6
+        
     
     @staticmethod
     def _matrix_from_axis_angle(a: Tuple[float]) -> np.ndarray:
@@ -44,7 +48,8 @@ class DataAugmentation():
         return R
 
 
-    def _rotate_z_axis(self, image: sitk.Image, degrees: float) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
+    @staticmethod
+    def _rotate_z_axis(image: sitk.Image, degrees: float) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
         # Adapted from:
         #   https://stackoverflow.com/questions/56171643/simpleitk-rotation-of-volumetric-data-e-g-mri
         
@@ -58,7 +63,7 @@ class DataAugmentation():
         
         direction = image.GetDirection()
         axis_angle = (direction[2], direction[5], direction[8], radians)
-        rotation_matrix = self.matrix_from_axis_angle(axis_angle)
+        rotation_matrix = DataAugmentation.matrix_from_axis_angle(axis_angle)
         
         # Construct transfomration matrix
         transformation = sitk.Euler3DTransform()
@@ -94,11 +99,42 @@ class DataAugmentation():
         
         return rotated_image, rotation_matrix
     
+    @staticmethod
+    def _blur_image(image: sitk, gaussian_sigma: float) -> sitk.Image:
+        # Store original pixel type to convert back to original as the smoothing
+        # operation will convert it to float
+        pixel_id = image.GetPixelID()
+
+        gaussian = sitk.SmoothingRecursiveGaussianImageFilter()
+        gaussian.SetSigma(gaussian_sigma)
+        image = gaussian.Execute(image)
+        
+        caster = sitk.CastImageFilter()
+        caster.SetOutputPixelType(pixel_id)
+        image = caster.Execute(image)
+     
+        return image
+    
+    
+    def _random_blur_image(self, image: sitk.Image, use_cache: bool = False) -> sitk.Image:
+        if use_cache and hasattr(DataAugmentation, '_cache_blur_sigma'):
+            sigma = self._cache_blur_sigma
+        else:
+            sigma = self.random_generator.uniform(self.min_gaussian_blur_sigma,
+                                                  self.max_gaussian_blur_sigma)
+            
+            self._cache_blur_sigma = sigma
+            
+        image = self._blur_image(image, sigma)
+        
+        return image
+    
     
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         
-        augmented_image, augmented_gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
+        image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
+        image = self._random_blur_image(image, use_cache)
         
-        return augmented_image, augmented_gt_image, rotation
+        return image, gt_image, rotation
 
