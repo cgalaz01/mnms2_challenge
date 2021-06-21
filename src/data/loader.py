@@ -10,6 +10,7 @@ import numpy as np
 
 import SimpleITK as sitk
 
+from .augment import DataAugmentation
 from .preprocess import Preprocess, Registration
 
 
@@ -26,6 +27,11 @@ class FileType(Enum):
     
 class ExtraType(Enum):
     reg_affine = 'SA_to_LA_registration_affine'
+    
+    
+class Affine(Enum):
+    sa_affine = 'sa_affine'
+    la_affine = 'la_affine'
     
 
 class OutputAffine(Enum):
@@ -73,6 +79,8 @@ class DataGenerator():
         self.la_target_shape[-1] = self.n_classes
         
         self.affine_shape = (4, 4)
+        
+        self.augmentation = DataAugmentation()
 
 
     @staticmethod
@@ -267,18 +275,54 @@ class DataGenerator():
         return patient_data
     
     
+    def augment_data(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, sitk.Image]:        
+
+        (patient_data[FileType.sa_ed.value], patient_data[FileType.sa_ed_gt.value],
+         sa_affine) = self.augmentation.random_augmentation(patient_data[FileType.sa_ed.value],
+                                                            patient_data[FileType.sa_ed_gt.value],
+                                                            use_cahce=False)
+        (patient_data[FileType.sa_es.value], patient_data[FileType.sa_es_gt.value],
+         sa_affine) = self.augmentation.random_augmentation(patient_data[FileType.sa_es.value],
+                                                            patient_data[FileType.sa_es_gt.value],
+                                                            use_cahce=True)
+                                                            
+        (patient_data[FileType.la_ed.value], patient_data[FileType.la_ed_gt.value],
+         la_affine) = self.augmentation.random_augmentation(patient_data[FileType.la_ed.value],
+                                                            patient_data[FileType.la_ed_gt.value],
+                                                            use_cahce=False)
+        (patient_data[FileType.la_es.value], patient_data[FileType.la_es_gt.value],
+         la_affine) = self.augmentation.random_augmentation(patient_data[FileType.la_es.value],
+                                                            patient_data[FileType.la_es_gt.value],
+                                                            use_cahce=True)
+        
+        patient_data[Affine.sa_affine.value] = sa_affine
+        patient_data[Affine.la_affine.value] = la_affine
+        
+        
+        return patient_data
+    
+    
     def to_numpy(self, patient_data: Dict[str, sitk.Image], has_affine_matrix: bool) -> Dict[str, np.ndarray]:
         
         # Handle 'ExtraType' data first
         if has_affine_matrix:
+            if (Affine.sa_affine.value in patient_data and 
+                Affine.la_affine.value in patient_data):
+                affine_matrix = sitk.CompositeTransform([patient_data[Affine.sa_affine.value].GetInverse(),
+                                                         patient_data[ExtraType.reg_affine.value],
+                                                         patient_data[Affine.la_affine.value]])
+            else:
+                affine_matrix = patient_data[ExtraType.reg_affine.value]
             sa_affine = Registration.get_affine_registration_matrix(patient_data[FileType.sa_ed.value],
-                                                                    patient_data[ExtraType.reg_affine.value])
+                                                                    affine_matrix)
             sa_affine = sa_affine.astype(np.float32)
             la_affine = Registration.get_affine_matrix(patient_data[FileType.la_ed.value])
             la_affine = la_affine.astype(np.float32)
         
         # Free from memory (and indexing)
         del patient_data[ExtraType.reg_affine.value]
+        del patient_data[Affine.sa_affine.value]
+        del patient_data[Affine.la_affine.value]
         
         # Handle original file data (images and segmentations)
         for key, image in patient_data.items():
@@ -343,7 +387,7 @@ class DataGenerator():
         
 
     def generator(self, patient_directory: Union[str, Path], affine_matrix: bool,
-                  has_gt: bool = True) -> Tuple[Dict[str, np.ndarray]]:
+                  has_gt: bool = True, augment: bool = False) -> Tuple[Dict[str, np.ndarray]]:
         if self.is_cached(patient_directory, has_gt):
             patient_data = self.load_cache(patient_directory, has_gt)
         else:
@@ -391,6 +435,7 @@ class DataGenerator():
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=False)
+            patient_data = self.augment_data(patient_data)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
@@ -432,6 +477,7 @@ class DataGenerator():
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=True)
+            patient_data = self.augment_data(patient_data)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
