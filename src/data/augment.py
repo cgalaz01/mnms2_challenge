@@ -99,6 +99,7 @@ class DataAugmentation():
         
         return rotated_image, rotation_matrix
     
+    
     @staticmethod
     def _blur_image(image: sitk, gaussian_sigma: float) -> sitk.Image:
         # Store original pixel type to convert back to original as the smoothing
