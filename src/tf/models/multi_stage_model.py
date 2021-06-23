@@ -343,6 +343,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     # output_sa or x_sa as input to spatial transformer
     x_la_t = spatial_target_transformer(output_sa, input_sa_affine, input_la_affine,
                                         sa_input_shape, la_input_shape)
+    x_la_t = layers.SpatialDropout2D(rate=0.5, name='la_transformation_spatial_dropout_1')(x_la_t)
     
     # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
