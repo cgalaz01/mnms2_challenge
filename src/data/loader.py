@@ -64,7 +64,7 @@ class DataGenerator():
         self.target_spacing = (1.25, 1.25, 10)
         self.target_size = (160, 160, 17)
         
-        self.n_classes = 4  # Including background
+        self.n_classes = 1  # Right ventricle only
 
         self.floating_precision = floating_precision
         
@@ -332,13 +332,20 @@ class DataGenerator():
             numpy_image = np.swapaxes(numpy_image, 0, -1)
             
             # Generate one-hot encoding of the labels
+            #if 'gt' in key:
+            #    numpy_image = numpy_image.astype(np.uint8)
+            #    if 'LA' in key: # use the 'depth' axis as the channel for the label
+            #        numpy_image = np.squeeze(numpy_image, axis=-1)
+            #    n_values = self.n_classes
+            #    numpy_image = np.eye(n_values)[numpy_image]
+            
+            # Select right-ventricle labels only
             if 'gt' in key:
                 numpy_image = numpy_image.astype(np.uint8)
-                if 'LA' in key: # use the 'depth; axis as the channel for the label
-                    numpy_image = np.squeeze(numpy_image, axis=-1)
-                n_values = self.n_classes
-                numpy_image = np.eye(n_values)[numpy_image]
-            
+                if 'SA' in key:
+                    numpy_image = np.expand_dims(numpy_image, axis=-1)
+                numpy_image[numpy_image != 3] = 0
+                numpy_image[numpy_image == 3] = 1
             
             if self.floating_precision == '16':
                 numpy_image = numpy_image.astype(np.float16)
