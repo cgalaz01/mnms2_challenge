@@ -7,17 +7,12 @@ def dice(y_true, y_pred, ignore_background=True, right_ventricle_only=True):
     
     y_true = tf.cast(y_true, dtype=tf.float32)
     y_pred = tf.cast(y_pred, dtype=tf.float32)
-    if right_ventricle_only:
-        # Expected one-hot encoding format, with background in index 0
-        y_true = y_true[..., 3]
-        y_pred = y_pred[..., 3]
-    elif ignore_background:
-        # Expected one-hot encoding format, with background in index 0
-        y_true = y_true[..., 1:]
-        y_pred = y_pred[..., 1:]
     
     # Expected y_pred to be 'logits'
-    y_pred = tf.nn.softmax(y_pred)
+    y_pred = tf.sigmoid(y_pred)
+    
+    # Threshold values
+    y_pred = tf.cast(tf.cast(y_pred + 0.5, dtype=tf.uint8), dtype=tf.float32)
     
     dim = tf.reduce_prod(tf.shape(y_true)[1:])
     y_true_flatten = tf.reshape(y_true, [-1, dim])
