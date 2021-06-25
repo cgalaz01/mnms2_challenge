@@ -62,7 +62,7 @@ class DataGenerator():
         self.test_list = self.get_patient_list(self.testing_directory)
         
         self.target_spacing = (1.25, 1.25, 10)
-        self.target_size = (160, 160, 17)
+        self.target_size = (192, 192, 17)
         
         self.n_classes = 1  # Right ventricle only
 
@@ -80,7 +80,7 @@ class DataGenerator():
         
         self.affine_shape = (4, 4)
         
-        self.augmentation = DataAugmentation()
+        self.augmentation = DataAugmentation(seed=1235)
 
 
     @staticmethod
@@ -320,9 +320,12 @@ class DataGenerator():
             la_affine = la_affine.astype(np.float32)
         
         # Free from memory (and indexing)
-        del patient_data[ExtraType.reg_affine.value]
-        del patient_data[Affine.sa_affine.value]
-        del patient_data[Affine.la_affine.value]
+        if ExtraType.reg_affine.value in patient_data:
+            del patient_data[ExtraType.reg_affine.value]
+        if Affine.sa_affine.value in patient_data:
+            del patient_data[Affine.sa_affine.value]
+        if Affine.la_affine.value in patient_data:
+            del patient_data[Affine.la_affine.value]
         
         # Handle original file data (images and segmentations)
         for key, image in patient_data.items():
@@ -437,12 +440,13 @@ class DataGenerator():
         return pre_output_data, post_output_data
         
         
-    def train_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
+    def train_generator(self, augment: bool = True, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=False)
-            patient_data = self.augment_data(patient_data)
+            if augment:
+                patient_data = self.augment_data(patient_data)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
@@ -479,12 +483,13 @@ class DataGenerator():
             yield patient_data[1], pre_patient_data[1], post_patient_data[1], patient_directory, 'es'
         
         
-    def train_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
+    def train_affine_generator(self, augment: bool = True, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
             patient_data = self.generator(patient_directory, affine_matrix=True)
-            patient_data = self.augment_data(patient_data)
+            if augment:
+                patient_data = self.augment_data(patient_data)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
