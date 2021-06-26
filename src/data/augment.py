@@ -1,6 +1,7 @@
 from typing import Tuple, Union
 
 import numpy as np
+from scipy import ndimage
 
 import SimpleITK as sitk
 
@@ -14,7 +15,7 @@ class DataAugmentation():
         self.max_z_rotation_degrees = 180
     
         self.min_gaussian_blur_sigma = 0
-        self.min_gaussian_blur_sigma = 6
+        self.max_gaussian_blur_sigma = 6
         
     
     @staticmethod
@@ -63,7 +64,7 @@ class DataAugmentation():
         
         direction = image.GetDirection()
         axis_angle = (direction[2], direction[5], direction[8], radians)
-        rotation_matrix = DataAugmentation.matrix_from_axis_angle(axis_angle)
+        rotation_matrix = DataAugmentation._matrix_from_axis_angle(axis_angle)
         
         # Construct transfomration matrix
         transformation = sitk.Euler3DTransform()
@@ -102,6 +103,13 @@ class DataAugmentation():
     
     @staticmethod
     def _blur_image(image: sitk, gaussian_sigma: float) -> sitk.Image:
+        numpy_image = sitk.GetArrayFromImage(image)
+        
+        numpy_image = ndimage.gaussian_filter(numpy_image, gaussian_sigma)
+        
+        blurred_image = sitk.GetImageFromArray(numpy_image)
+        blurred_image.CopyInformation(image)
+        """
         # Store original pixel type to convert back to original as the smoothing
         # operation will convert it to float
         pixel_id = image.GetPixelID()
@@ -113,8 +121,8 @@ class DataAugmentation():
         caster = sitk.CastImageFilter()
         caster.SetOutputPixelType(pixel_id)
         image = caster.Execute(image)
-     
-        return image
+        """
+        return blurred_image
     
     
     def _random_blur_image(self, image: sitk.Image, use_cache: bool = False) -> sitk.Image:

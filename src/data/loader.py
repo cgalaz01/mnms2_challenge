@@ -280,20 +280,20 @@ class DataGenerator():
         (patient_data[FileType.sa_ed.value], patient_data[FileType.sa_ed_gt.value],
          sa_affine) = self.augmentation.random_augmentation(patient_data[FileType.sa_ed.value],
                                                             patient_data[FileType.sa_ed_gt.value],
-                                                            use_cahce=False)
+                                                            use_cache=False)
         (patient_data[FileType.sa_es.value], patient_data[FileType.sa_es_gt.value],
          sa_affine) = self.augmentation.random_augmentation(patient_data[FileType.sa_es.value],
                                                             patient_data[FileType.sa_es_gt.value],
-                                                            use_cahce=True)
+                                                            use_cache=True)
                                                             
         (patient_data[FileType.la_ed.value], patient_data[FileType.la_ed_gt.value],
          la_affine) = self.augmentation.random_augmentation(patient_data[FileType.la_ed.value],
                                                             patient_data[FileType.la_ed_gt.value],
-                                                            use_cahce=False)
+                                                            use_cache=False)
         (patient_data[FileType.la_es.value], patient_data[FileType.la_es_gt.value],
          la_affine) = self.augmentation.random_augmentation(patient_data[FileType.la_es.value],
                                                             patient_data[FileType.la_es_gt.value],
-                                                            use_cahce=True)
+                                                            use_cache=True)
         
         patient_data[Affine.sa_affine.value] = sa_affine
         patient_data[Affine.la_affine.value] = la_affine
@@ -409,7 +409,8 @@ class DataGenerator():
                                                                  affine_matrix)
             self.save_cache(patient_directory, patient_data)
 
-        
+        if augment:
+                patient_data = self.augment_data(patient_data)
         patient_data = self.to_numpy(patient_data, affine_matrix)
     
         output_data = self.to_structure(patient_data, affine_matrix, has_gt)
@@ -444,9 +445,7 @@ class DataGenerator():
         for patient_directory in self.train_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=False)
-            if augment:
-                patient_data = self.augment_data(patient_data)
+            patient_data = self.generator(patient_directory, affine_matrix=False, augment=augment)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
@@ -487,9 +486,7 @@ class DataGenerator():
         for patient_directory in self.train_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=True)
-            if augment:
-                patient_data = self.augment_data(patient_data)
+            patient_data = self.generator(patient_directory, affine_matrix=True, augment=augment)
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
