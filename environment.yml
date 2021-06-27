@@ -11,6 +11,7 @@ dependencies:
   - pip
   - pip:
       - tensorflow==2.5.0
+      - tensorflow-addons==0.13.0
       - simpleitk==2.0.2
       - voxelmorph==0.1
 

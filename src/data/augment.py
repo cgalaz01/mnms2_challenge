@@ -109,19 +109,7 @@ class DataAugmentation():
         
         blurred_image = sitk.GetImageFromArray(numpy_image)
         blurred_image.CopyInformation(image)
-        """
-        # Store original pixel type to convert back to original as the smoothing
-        # operation will convert it to float
-        pixel_id = image.GetPixelID()
-
-        gaussian = sitk.SmoothingRecursiveGaussianImageFilter()
-        gaussian.SetSigma(gaussian_sigma)
-        image = gaussian.Execute(image)
         
-        caster = sitk.CastImageFilter()
-        caster.SetOutputPixelType(pixel_id)
-        image = caster.Execute(image)
-        """
         return blurred_image
     
     

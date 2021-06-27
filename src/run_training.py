@@ -10,6 +10,7 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_addons as tfa
 
 from tensorboard.plugins.hparams import api as hp
 
@@ -18,7 +19,7 @@ import matplotlib.pyplot as plt
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
-from tf.losses.loss import FocalLoss, TverskyLoss
+from tf.losses.loss import TverskyLoss
 from tf.metrics.metrics import dice
 from run_test_inference import test_prediction
 
@@ -118,7 +119,10 @@ if __name__ == '__main__':
             
         if hparams[hyper_parameters.HP_LOSS] == 'focal':
             # α should be decreased slightly as γ is increased
-            loss = FocalLoss(0.25, 2.0)
+            loss = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,
+                                                       alpha=0.25,
+                                                       gamma=2.0,
+                                                       reduction=tf.keras.losses.Reduction.AUTO)
         elif hparams[hyper_parameters.HP_LOSS] == 'tversky':
             loss = TverskyLoss(0.5, 0.5)
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
