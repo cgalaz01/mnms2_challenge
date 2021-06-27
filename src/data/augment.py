@@ -11,11 +11,11 @@ class DataAugmentation():
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
         
-        self.min_z_rotation_degrees = -180
-        self.max_z_rotation_degrees = 180
+        self.min_z_rotation_degrees = -15
+        self.max_z_rotation_degrees = 15
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 6
+        self.max_gaussian_blur_sigma = 4
         
     
     @staticmethod
