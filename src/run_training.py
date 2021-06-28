@@ -133,7 +133,9 @@ if __name__ == '__main__':
         model.compile(
             optimizer=optimizer,
             loss=loss,
-            metrics=[dice])
+            metrics=[dice],
+            loss_weights={'output_sa': 3,
+                          'output_la': 1})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'

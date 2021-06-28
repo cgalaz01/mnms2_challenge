@@ -1,3 +1,5 @@
+import math
+
 import tensorflow as tf
 
 from tensorflow import keras
@@ -163,6 +165,11 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa = input_sa
     x_la = input_la
     
+    # Compute the biases for the output layers
+    p_sa = 0.01
+    p_la = 0.01
+    bias_sa = math.log10((1 - p_sa) / p_sa)
+    bias_la = math.log10((1 - p_la) / p_la)
     
     shared_layers = _shared_2d_branch(la_input_shape, kernel_initializer, downsample=False)
         
@@ -191,7 +198,9 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa = layers.Activation('relu', name='sa_activation_3_2')(x_sa)
     
     output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
-                              kernel_initializer=kernel_initializer, name='output_sa')(x_sa)
+                              kernel_initializer=kernel_initializer,
+                              bias_initializer=keras.initializers.Constant(bias_sa),
+                              name='output_sa')(x_sa)
     
     # Pass the long-axis slice through the shared layers
     x_la = shared_layers(x_la)
@@ -228,7 +237,9 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = layers.Activation('relu', name='la_activation_5_2')(x_la)
     
     output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
-                              kernel_initializer=kernel_initializer, name='output_la')(x_la)
+                              kernel_initializer=kernel_initializer,
+                              bias_initializer=keras.initializers.Constant(bias_la),
+                              name='output_la')(x_la)
     
     model = keras.Model([input_sa, input_la, input_sa_affine, input_la_affine],
                         [output_sa, output_la])
