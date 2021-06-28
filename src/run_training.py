@@ -53,6 +53,8 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
 def visual_summary(model: keras.Model, generator: DataGenerator,
                    output_path: Union[str, Path]) -> None:
     os.makedirs(output_path, exist_ok=True)
+    threshold = 0
+    
     i = 0
     for data in generator.validation_affine_generator():
         # Add batch dimension to each of the input values
@@ -62,11 +64,11 @@ def visual_summary(model: keras.Model, generator: DataGenerator,
         prediction_list = model.predict(data[0])
         prediction_dict = {name: pred for name, pred in zip(model.output_names, prediction_list)}
 
-        predict_sa = np.argmax(prediction_dict['output_sa'][0], axis=-1).astype(np.uint8)
-        gt_sa = np.argmax(data[1]['output_sa'], axis=-1)
+        predict_sa = (prediction_dict['output_sa'][0] >= threshold).astype(np.uint8)[..., 0]
+        gt_sa = data[1]['output_sa'][..., 0].astype(np.uint8)
         
-        predict_la = np.argmax(prediction_dict['output_la'][0], axis=-1).astype(np.uint8)
-        gt_la = np.argmax(data[1]['output_la'], axis=-1)
+        predict_la = (prediction_dict['output_la'][0] >= threshold).astype(np.uint8)[..., 0]
+        gt_la = data[1]['output_la'][..., 0].astype(np.uint8)
         
         output_file = os.path.join(output_path, str(i) + '.png')
         i += 1

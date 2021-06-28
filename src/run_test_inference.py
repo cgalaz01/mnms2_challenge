@@ -44,6 +44,8 @@ def test_prediction(model: tf.keras.Model) -> None:
                                                                          max_buffer_size=None,
                                                                          floating_precision='16')
                                             
+    threshold = 0
+    
     for data, pre_sitk, post_sitk, patient_directory, phase in data_gen.test_affine_generator_inference():
         # Add batch dimension to each of the input values
         for key, value in data[0].items():
@@ -52,15 +54,15 @@ def test_prediction(model: tf.keras.Model) -> None:
         prediction_list = model.predict(data[0])
         prediction_dict = {name: pred for name, pred in zip(model.output_names, prediction_list)}
         
-        output_sa = np.argmax(prediction_dict['output_sa'][0], axis=-1).astype(np.uint8)
+        output_sa = (prediction_dict['output_sa'][0] >= threshold).astype(np.uint8)[..., 0]
         output_sa = np.swapaxes(output_sa, 0, -1)
         output_sa = sitk.GetImageFromArray(output_sa)
         
         output_sa.CopyInformation(post_sitk[0]['input_sa'])
         output_sa = sitk.Resample(output_sa, pre_sitk[0]['input_sa'])
         
-        output_la = np.argmax(prediction_dict['output_la'][0], axis=-1).astype(np.uint8)
-        output_la = np.expand_dims(output_la, -1)   # Add '3D' dimension back
+        output_la = (prediction_dict['output_la'][0] >= threshold).astype(np.uint8)[..., 0]
+        output_la = np.expand_dims(output_la, -1)   # Add 3rd dimension back
         output_la = np.swapaxes(output_la, 0, -1)
         output_la = sitk.GetImageFromArray(output_la)
         
