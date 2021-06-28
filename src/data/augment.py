@@ -11,11 +11,11 @@ class DataAugmentation():
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
         
-        self.min_z_rotation_degrees = -15
-        self.max_z_rotation_degrees = 15
+        self.min_z_rotation_degrees = -10
+        self.max_z_rotation_degrees = 10
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 4
+        self.max_gaussian_blur_sigma = 5
         
     
     @staticmethod
@@ -105,7 +105,10 @@ class DataAugmentation():
     def _blur_image(image: sitk, gaussian_sigma: float) -> sitk.Image:
         numpy_image = sitk.GetArrayFromImage(image)
         
-        numpy_image = ndimage.gaussian_filter(numpy_image, gaussian_sigma)
+        # In-plane only blurring
+        numpy_image = ndimage.gaussian_filter(numpy_image, (gaussian_sigma,
+                                                            gaussian_sigma,
+                                                            0))
         
         blurred_image = sitk.GetImageFromArray(numpy_image)
         blurred_image.CopyInformation(image)
