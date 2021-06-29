@@ -82,7 +82,7 @@ class DataAugmentation():
     def _random_rotate_z_axis(self, image: sitk.Image, gt_image: Union[None, sitk.Image],
                               use_cache: bool) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
 
-        if use_cache and hasattr(DataAugmentation, '_cache_rotate_z_degrees'):
+        if use_cache:
             degrees = self._cache_rotate_z_degrees
         else:
             degrees = self.random_generator.randint(self.min_z_rotation_degrees,
@@ -117,7 +117,7 @@ class DataAugmentation():
     
     
     def _random_blur_image(self, image: sitk.Image, use_cache: bool = False) -> sitk.Image:
-        if use_cache and hasattr(DataAugmentation, '_cache_blur_sigma'):
+        if use_cache:
             sigma = self._cache_blur_sigma
         else:
             sigma = self.random_generator.uniform(self.min_gaussian_blur_sigma,

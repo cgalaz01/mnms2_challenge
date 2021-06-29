@@ -176,15 +176,17 @@ class DataGenerator():
                                 size: Tuple[int], has_gt: bool = True, register: bool = True) -> Dict[str, sitk.Image]:
         # Resample images to standardised spacing and size
         # Short-axis
+        sa_spacing = list(spacing)
+        sa_spacing[2] = patient_data[FileType.sa_ed.value].GetSpacing()[2]
         patient_data[FileType.sa_ed.value] = Preprocess.resample_image(patient_data[FileType.sa_ed.value],
-                                                                       spacing, size, is_label=False)
+                                                                       sa_spacing, size, is_label=False)
         patient_data[FileType.sa_es.value] = Preprocess.resample_image(patient_data[FileType.sa_es.value],
-                                                                       spacing, size, is_label=False)
+                                                                       sa_spacing, size, is_label=False)
         if has_gt:
             patient_data[FileType.sa_ed_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_ed_gt.value],
-                                                                              spacing, size, is_label=True)
+                                                                              sa_spacing, size, is_label=True)
             patient_data[FileType.sa_es_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_es_gt.value],
-                                                                              spacing, size, is_label=True)
+                                                                              sa_spacing, size, is_label=True)
 
         # Long-axis
         la_spacing = list(spacing)
