@@ -202,6 +202,9 @@ class DiceLoss(tf.keras.losses.Loss):
     
     
 def combined_loss(y_true, y_pred):
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+            
     focal_loss = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,
                                                      alpha=0.25,
                                                      gamma=2.0,
