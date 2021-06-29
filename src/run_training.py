@@ -136,7 +136,7 @@ if __name__ == '__main__':
             optimizer=optimizer,
             loss=loss,
             metrics=[dice],
-            loss_weights={'output_sa': 3,
+            loss_weights={'output_sa': 17,
                           'output_la': 1})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
