@@ -142,13 +142,31 @@ def _shared_2d_branch(input_shape, kernel_initializer, downsample=False) -> kera
     shared_input = keras.layers.Input(shape=input_shape, name='input_' + suffix)
     
     x = shared_input
+    x1 = x
 
     # Pass input through multi-level feature pyramid pipeline
     x = feature_pyramid_layer(x, pyramid_layers=3, input_shape=input_shape,
                               num_filters=128, kernel_initializer=kernel_initializer,
                               suffix=suffix, index='1')
     
+    num_filters = 128
+    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+                      kernel_initializer=kernel_initializer,
+                      name=suffix + 'stack_conv2d_1_1')(x1)
+    x1 = layers.Activation('relu', name=suffix + 'stack_activation_1_2')(x1)
+    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+                      kernel_initializer=kernel_initializer,
+                      name=suffix + 'stack_conv2d_2_1')(x1)
+    x1 = layers.Activation('relu', name=suffix + 'stack_activation_2_2')(x1)
+    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
+                      kernel_initializer=kernel_initializer,
+                      name=suffix + 'stack_conv2d_3_1')(x1)
+    x1 = layers.Activation('relu', name=suffix + 'stack_activation_3_2')(x1)
+    
+    x = layers.Add(name=suffix + 'add_1_1')([x, x1])
+    
     shared_model = keras.models.Model(shared_input, x)
+    
     return shared_model
 
 
@@ -183,6 +201,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     
     # Stack back into a 3D image (W, H, D, C)
     x_sa = tf.stack(x_sa_list, axis=-2)
+    x_sa_skip = x_sa
     
     # Short-Axis branch
     x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
@@ -196,6 +215,8 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa = layers.Conv3D(128, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='sa_conv3d_3_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_3_2')(x_sa)
+
+    x_sa = layers.Add(name='sa_add_4_1')([x_sa, x_sa_skip])
     
     output_sa = layers.Conv3D(num_classes, (1, 1, 1), padding='same',
                               kernel_initializer=kernel_initializer,
@@ -204,6 +225,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     
     # Pass the long-axis slice through the shared layers
     x_la = shared_layers(x_la)
+    x_la_skip = x_la
     
     # Long-Axis branch
     x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
@@ -218,8 +240,10 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
                          name='la_conv2d_3_1')(x_la)
     x_la = layers.Activation('relu', name='la_activation_3_2')(x_la)
       
+    x_la = layers.Add(name='la_add_4_1')([x_la, x_la_skip])
+    
     x_la = layers.Conv2D(num_classes, (1, 1), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_4_1')(x_la)
+                         name='la_conv2d_5_1')(x_la)
     
     # output_sa or x_sa as input to spatial transformer
     x_la_t = spatial_target_transformer(output_sa, input_sa_affine, input_la_affine,
@@ -233,8 +257,8 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la = layers.Concatenate(name='la_concatenate')([x_la, x_la_t])
     
     x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_5_1')(x_la)
-    x_la = layers.Activation('relu', name='la_activation_5_2')(x_la)
+                         name='la_conv2d_6_1')(x_la)
+    x_la = layers.Activation('relu', name='la_activation_6_2')(x_la)
     
     output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
                               kernel_initializer=kernel_initializer,
