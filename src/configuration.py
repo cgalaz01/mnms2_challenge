@@ -22,7 +22,7 @@ class HyperParameters():
         self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([1]))
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.0005]))
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))
-        self.HP_LOSS = HParamS('loss', hp.Discrete(['focal']))
+        self.HP_LOSS = HParamS('loss', hp.Discrete(['combined']))
         self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
         
         self.parameter_dict = {}

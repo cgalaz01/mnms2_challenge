@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
-from tf.losses.loss import TverskyLoss
+from tf.losses.loss import TverskyLoss, combined_loss
 from tf.metrics.metrics import dice
 from run_test_inference import test_prediction
 
@@ -127,6 +127,8 @@ if __name__ == '__main__':
                                                        reduction=tf.keras.losses.Reduction.AUTO)
         elif hparams[hyper_parameters.HP_LOSS] == 'tversky':
             loss = TverskyLoss(0.5, 0.5)
+        elif hparams[hyper_parameters.HP_LOSS] == 'combined':
+            loss = combined_loss
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
             
