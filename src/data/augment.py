@@ -11,11 +11,13 @@ class DataAugmentation():
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
         
-        self.min_z_rotation_degrees = -10
-        self.max_z_rotation_degrees = 10
+        self.min_z_rotation_degrees = -15
+        self.max_z_rotation_degrees = 15
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 5
+        self.max_gaussian_blur_sigma = 3
+        
+        self.rayleigh_scale = 0.1
         
     
     @staticmethod
@@ -102,7 +104,7 @@ class DataAugmentation():
     
     
     @staticmethod
-    def _blur_image(image: sitk, gaussian_sigma: float) -> sitk.Image:
+    def _blur_image(image: sitk.Image, gaussian_sigma: float) -> sitk.Image:
         numpy_image = sitk.GetArrayFromImage(image)
         
         # In-plane only blurring
@@ -130,11 +132,24 @@ class DataAugmentation():
         return image
     
     
+    def _random_noise(self, image: sitk.Image) -> sitk.Image:
+        numpy_image = sitk.GetArrayFromImage(image)
+        # noise_img = util.random_noise(image, mode='gaussian')
+        numpy_image += self.random_generator.rayleigh(self.rayleigh_scale,
+                                                      size=numpy_image.shape)
+        
+        noisey_image = sitk.GetImageFromArray(numpy_image)
+        noisey_image .CopyInformation(image)
+        
+        return noisey_image
+    
+    
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)
+        image = self._random_noise(image)
         
         return image, gt_image, rotation
 
