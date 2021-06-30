@@ -116,8 +116,15 @@ if __name__ == '__main__':
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
+        learning_schedule = keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=learning_rate,
+            decay_steps=20,
+            decay_rate=0.9)
+        
         if hparams[hyper_parameters.HP_OPTIMISER] == 'adam':
-            optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+            optimizer = keras.optimizers.Adam(learning_rate=learning_schedule)
+        elif hparams[hyper_parameters.HP_OPTIMISER] == 'adamax':
+            optimizer = keras.optimizers.Adamax(learning_rate=learning_schedule)
             
         if hparams[hyper_parameters.HP_LOSS] == 'focal':
             # α should be decreased slightly as γ is increased
@@ -136,8 +143,8 @@ if __name__ == '__main__':
             optimizer=optimizer,
             loss=loss,
             metrics=[dice],
-            loss_weights={'output_sa': 17,
-                          'output_la': 1})
+            loss_weights={'output_sa': 100,
+                          'output_la': 0.1})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
