@@ -57,7 +57,7 @@ def select_largest_region(label_image: np.ndarray) -> np.ndarray:
         # Remove any set labels that do not correspond to the largest segmentation
         label_image[multi_label_image != largest_index_label] = 0
         
-        return label_image
+    return label_image
         
 def test_prediction(model: tf.keras.Model) -> None:    
     (train_gen, validation_gen,
