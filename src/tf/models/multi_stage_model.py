@@ -204,7 +204,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_sa_skip = x_sa
     
     # Short-Axis branch
-    x_sa = layers.Conv3D(32, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
+    x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='sa_conv3d_1_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_1_2')(x_sa)
     
@@ -228,7 +228,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     x_la_skip = x_la
     
     # Long-Axis branch
-    x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
+    x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='la_conv2d_1_1')(x_la)
     x_la = layers.Activation('relu', name='la_activation_1_2')(x_la)
     
