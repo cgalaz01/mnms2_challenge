@@ -116,11 +116,11 @@ if __name__ == '__main__':
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
-        decay_steps = 256 * 20 # 256: expected data size per epoch 
+        decay_steps = 288 * 30 # 288: expected data size per epoch 
         learning_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
             decay_steps=decay_steps,
-            decay_rate=0.95)
+            decay_rate=0.9)
         
         if hparams[hyper_parameters.HP_OPTIMISER] == 'adam':
             optimizer = keras.optimizers.Adam(learning_rate=learning_schedule)
@@ -145,7 +145,7 @@ if __name__ == '__main__':
             loss=loss,
             metrics=[dice],
             loss_weights={'output_sa': 100,
-                          'output_la': 0.1})
+                          'output_la': 0.2})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'

@@ -57,8 +57,8 @@ class DataGenerator():
         self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
         
         self.train_list = self.get_patient_list(self.train_directory)
-        self.train_list = self.randomise_list(self.train_list, seed=4516, inplace=True)
-        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=0.8)
+        self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
+        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=0.9)
         self.test_list = self.get_patient_list(self.testing_directory)
         
         self.target_spacing = (1.25, 1.25, 10)

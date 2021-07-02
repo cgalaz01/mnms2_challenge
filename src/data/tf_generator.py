@@ -12,7 +12,7 @@ class TensorFlowDataGenerator():
                             output_shapes: Tuple[Dict[str, tf.TensorShape]],
                             output_types: Tuple[Dict[str, tf.dtypes.DType]],
                             max_buffer_size: Union[int, None]=None,
-                            floating_precision: str='32') -> Tuple[tf.data.Dataset]:
+                            floating_precision: str = '32') -> Tuple[tf.data.Dataset]:
         
         buffer_size = len(dg.train_list) * 2
         if max_buffer_size is not None:
@@ -75,7 +75,7 @@ class TensorFlowDataGenerator():
 
     @staticmethod
     def get_affine_generators(batch_size: int, max_buffer_size: Union[int, None]=None,
-                              floating_precision: str='32') -> Tuple[tf.data.Dataset]:
+                              floating_precision: str = '32') -> Tuple[tf.data.Dataset]:
         dg = DataGenerator(floating_precision)
         
         output_shapes = ({'input_sa': tf.TensorShape(dg.sa_shape),
