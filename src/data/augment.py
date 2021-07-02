@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from scipy import ndimage
@@ -52,7 +52,7 @@ class DataAugmentation():
 
 
     @staticmethod
-    def _rotate_z_axis(image: sitk.Image, degrees: float) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
+    def _rotate_z_axis(image: sitk.Image, degrees: float, is_labels: bool) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
         # Adapted from:
         #   https://stackoverflow.com/questions/56171643/simpleitk-rotation-of-volumetric-data-e-g-mri
         
@@ -73,16 +73,20 @@ class DataAugmentation():
         transformation.SetCenter(physical_centre)
         transformation.SetMatrix(rotation_matrix.flatten().tolist())
         
+        if is_labels:
+            interpolater = sitk.sitkNearestNeighbor
+        else:
+            interpolater = sitk.sitkLinear
         rotated_image = sitk.Resample(image,
                                       transformation,
-                                      sitk.sitkLinear,
+                                      interpolater,
                                       0)
         
         return rotated_image, transformation
     
     
     def _random_rotate_z_axis(self, image: sitk.Image, gt_image: Union[None, sitk.Image],
-                              use_cache: bool) -> Tuple[sitk.Image, sitk.Euler3DTransform]:
+                              use_cache: bool) -> Tuple[sitk.Image, Union[None, sitk.Image], sitk.Euler3DTransform]:
 
         if use_cache:
             degrees = self._cache_rotate_z_degrees
@@ -93,16 +97,45 @@ class DataAugmentation():
                                                     dtype=int)
             self._cache_rotate_z_degrees = degrees
         
-        rotated_image, rotation_matrix = self._rotate_z_axis(image, degrees)
+        rotated_image, rotation_matrix = self._rotate_z_axis(image, degrees, is_labels=False)
         
         if gt_image is not None:
-            rotated_gt, rotation_matrix = self._rotate_z_axis(gt_image, degrees)
+            rotated_gt, rotation_matrix = self._rotate_z_axis(gt_image, degrees, is_labels=True)
         
             return rotated_image, rotated_gt, rotation_matrix
         
         return rotated_image, rotation_matrix
     
     
+    @staticmethod
+    def _reflect_image(image: sitk.Image, reflect_axis: List[bool]) -> sitk.Image:
+        if sum(reflect_axis) > 0:        
+            reflected_image = sitk.Flip(image, reflect_axis)
+            return reflected_image
+    
+        return image
+    
+
+    def _random_reflect_image(self, image: sitk.Image, gt_image: Union[None, sitk.Image],
+                              use_cache: bool) -> Tuple[sitk.Image, Union[None, sitk.Image]]:
+        if use_cache:
+            reflect_axis = self._cache_reflect_axis
+        else:
+            reflect = bool(self.random_generator.random() < 0.5)
+            reflect_axis = [False, reflect, False]
+            
+            self._cache_reflect_axis = reflect_axis
+            
+        reflected_image = self._reflect_image(image, reflect_axis)
+        
+        if gt_image is not None:
+            reflected_gt_image = self._reflect_image(gt_image, reflect_axis)
+            
+            return reflected_image, reflected_gt_image
+            
+        return reflected_image
+
+        
     @staticmethod
     def _blur_image(image: sitk.Image, gaussian_sigma: float) -> sitk.Image:
         numpy_image = sitk.GetArrayFromImage(image)
@@ -150,6 +183,7 @@ class DataAugmentation():
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
+        image, gt_image = self._random_reflect_image(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)
         image = self._random_noise(image)
         
