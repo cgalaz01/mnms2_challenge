@@ -252,7 +252,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes) -> keras.Model:
     # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
     
-    x_la_t = layers.Dropout(rate=0.5, name='la_transformation_dropout_1')(x_la_t)
+    x_la_t = layers.Dropout(rate=0.15, name='la_transformation_dropout_1')(x_la_t)
 
     x_la = layers.Concatenate(name='la_concatenate')([x_la, x_la_t])
     

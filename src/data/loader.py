@@ -58,7 +58,7 @@ class DataGenerator():
         
         self.train_list = self.get_patient_list(self.train_directory)
         self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
-        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=0.9)
+        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=15/16)
         self.test_list = self.get_patient_list(self.testing_directory)
         
         self.target_spacing = (1.25, 1.25, 10)
@@ -412,7 +412,7 @@ class DataGenerator():
             self.save_cache(patient_directory, patient_data)
 
         if augment:
-                patient_data = self.augment_data(patient_data)
+            patient_data = self.augment_data(patient_data)
         patient_data = self.to_numpy(patient_data, affine_matrix)
     
         output_data = self.to_structure(patient_data, affine_matrix, has_gt)
