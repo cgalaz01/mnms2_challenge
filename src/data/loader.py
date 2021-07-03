@@ -80,6 +80,8 @@ class DataGenerator():
         
         self.affine_shape = (4, 4)
         
+        self.data_in_memory = {}
+        
         self.augmentation = DataAugmentation(seed=1235)
 
 
@@ -277,6 +279,23 @@ class DataGenerator():
         return patient_data
     
     
+    def is_in_memory(self, patient_directory: Union[str, Path]) -> bool:
+        if patient_directory in self.data_in_memory:
+            return True
+
+        return False
+        
+    
+    def save_memory(self, patient_directory: Union[str, Path],
+                    patient_data: Dict[str, sitk.Image]) -> None:
+        self.data_in_memory[patient_directory] = patient_data
+
+    
+    def get_memory(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
+        patient_data = self.data_in_memory[patient_directory]
+        return patient_data
+
+        
     def augment_data(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, sitk.Image]:        
 
         (patient_data[FileType.sa_ed.value], patient_data[FileType.sa_ed_gt.value],
@@ -400,7 +419,9 @@ class DataGenerator():
 
     def generator(self, patient_directory: Union[str, Path], affine_matrix: bool,
                   has_gt: bool = True, augment: bool = False) -> Tuple[Dict[str, np.ndarray]]:
-        if self.is_cached(patient_directory, has_gt):
+        if self.is_in_memory(patient_directory):
+            patient_data = self.get_memory(patient_directory)
+        elif self.is_cached(patient_directory, has_gt):
             patient_data = self.load_cache(patient_directory, has_gt)
         else:
             patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
@@ -410,6 +431,7 @@ class DataGenerator():
                                                                  has_gt,
                                                                  affine_matrix)
             self.save_cache(patient_directory, patient_data)
+            self.save_memory(patient_directory, patient_data)
 
         if augment:
             patient_data = self.augment_data(patient_data)
