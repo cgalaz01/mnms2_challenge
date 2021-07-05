@@ -45,12 +45,13 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                            kernel_initializer=kernel_initializer,
                                            name=suffix + '_pyramid_up_conv2d_' + i_s + '_3_' + index))
         shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_up_activation_' + i_s + '_4_' + index))
-        shared_layers.append(layers.UpSampling2D((2, 2), interpolation='bilinear',
-                                                 name=suffix + '_pyramid_upsampling_' + i_s + '_5_' + index))
-        x_crop_size = input_shape[0] // 2
-        y_crop_size = input_shape[1] // 2
+        
+        x_crop_size = input_shape[0] // 4
+        y_crop_size = input_shape[1] // 4
         shared_layers.append(layers.Cropping2D((x_crop_size, y_crop_size),
-                             name=suffix + '_pyramid_up_cropping_' + i_s + '_6_' + index))
+                             name=suffix + '_pyramid_up_cropping_' + i_s + '_5_' + index))
+        shared_layers.append(layers.UpSampling2D((2, 2), interpolation='bilinear',
+                                                 name=suffix + '_pyramid_upsampling_' + i_s + '_6_' + index))
         
         shared_up_level.append(shared_layers)
     
