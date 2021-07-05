@@ -10,7 +10,8 @@ from tf.layers.transformer import spatial_target_transformer
     
     
 def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
-                                   kernel_initializer, activation, suffix, index):
+                                   kernel_initializer, activation, dropout_rate,
+                                   suffix, index):
     shared_down_level = []
     for i in range(num_pyramid_layers):
         i_s = str(i + 1)
@@ -19,16 +20,18 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                            kernel_initializer=kernel_initializer,
                                            name=suffix + '_pyramid_down_conv2d_' + i_s + '_1_' + index))
         shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_down_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_down_dropout_' + i_s + '_3_' + index))
         shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
                                            kernel_initializer=kernel_initializer,
-                                           name=suffix + '_pyramid_down_conv2d_' + i_s + '_3_' + index))
-        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_down_activation_' + i_s + '_4_' + index))
+                                           name=suffix + '_pyramid_down_conv2d_' + i_s + '_4_' + index))
+        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_down_activation_' + i_s + '_5_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_down_dropout_' + i_s + '_6_' + index))
         shared_layers.append(layers.MaxPooling2D((2, 2), padding='same',
-                             name=suffix + '_pyramid_down_max_pooling_' + i_s + '_5_' + index))
+                             name=suffix + '_pyramid_down_max_pooling_' + i_s + '_7_' + index))
         x_pad_size = input_shape[0] // 4
         y_pad_size = input_shape[1] // 4
         shared_layers.append(layers.ZeroPadding2D((x_pad_size, y_pad_size),
-                             name=suffix + '_pyramid_down_padding_' + i_s + '_6_' + index))
+                             name=suffix + '_pyramid_down_padding_' + i_s + '_8_' + index))
         
         shared_down_level.append(shared_layers)
     
@@ -41,17 +44,19 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                            kernel_initializer=kernel_initializer,
                                            name=suffix + '_pyramid_up_conv2d_' + i_s + '_1_' + index))
         shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_up_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_up_dropout_' + i_s + '_3_' + index))
         shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
                                            kernel_initializer=kernel_initializer,
-                                           name=suffix + '_pyramid_up_conv2d_' + i_s + '_3_' + index))
-        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_up_activation_' + i_s + '_4_' + index))
+                                           name=suffix + '_pyramid_up_conv2d_' + i_s + '_4_' + index))
+        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_up_activation_' + i_s + '_5_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_up_dropout_' + i_s + '_6_' + index))
         
         x_crop_size = input_shape[0] // 4
         y_crop_size = input_shape[1] // 4
         shared_layers.append(layers.Cropping2D((x_crop_size, y_crop_size),
-                             name=suffix + '_pyramid_up_cropping_' + i_s + '_5_' + index))
+                             name=suffix + '_pyramid_up_cropping_' + i_s + '_7_' + index))
         shared_layers.append(layers.UpSampling2D((2, 2), interpolation='bilinear',
-                                                 name=suffix + '_pyramid_upsampling_' + i_s + '_6_' + index))
+                                                 name=suffix + '_pyramid_upsampling_' + i_s + '_8_' + index))
         
         shared_up_level.append(shared_layers)
     
@@ -64,11 +69,13 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                            kernel_initializer=kernel_initializer,
                                            name=suffix + '_pyramid_skip_conv2d_' + i_s + '_1_' + index))
         shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_skip_activation_' + i_s + '_2_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_skip_dropout_' + i_s + '_3_' + index))
         shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
                                            kernel_initializer=kernel_initializer,
-                                           name=suffix + '_pyramid_skip_conv2d_' + i_s + '_3_' + index))
-        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_skip_activation_' + i_s + '_4_' + index))
-        shared_layers.append(layers.Add(name=suffix + '_pyramid_skip_add_' + i_s + '_5_' + index))
+                                           name=suffix + '_pyramid_skip_conv2d_' + i_s + '_4_' + index))
+        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_skip_activation_' + i_s + '_5_' + index))
+        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_skip_dropout_' + i_s + '_6_' + index))
+        shared_layers.append(layers.Add(name=suffix + '_pyramid_skip_add_' + i_s + '_7_' + index))
         
         shared_skip.append(shared_layers)
     
@@ -76,12 +83,13 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
 
     
 def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_initializer,
-                          activation, suffix, index):
+                          activation, dropout_rate, suffix, index):
     
     x_input = layers.Conv2D(num_filters, (1, 1), (1, 1), padding='same',
                             kernel_initializer=kernel_initializer,
                             name=suffix + '_pyramid_input_conv2d_1_' + index)(x)
     x_input = layers.Activation(activation, name=suffix + '_pyramid_input_activation_2_' + index)(x_input)
+    x_input = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_input_dropout_3_' + index)
     
 
     # Initialise shared layers for the pyramid
@@ -90,6 +98,7 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
                                                                                      num_filters,
                                                                                      kernel_initializer,
                                                                                      activation,
+                                                                                     dropout_rate,
                                                                                      suffix,
                                                                                      index)
     pyramid_output = []
@@ -134,11 +143,12 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
                       kernel_initializer=kernel_initializer,
                       name=suffix + '_pyramid_output_conv2d_2_' + index)(x)
     x = layers.Activation(activation, name=suffix + '_pyramid_output_activation_3_' + index)(x)
+    x = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_output_dropout_3_' + index)
         
     return x
         
     
-def _shared_2d_branch(input_shape, kernel_initializer, activation) -> keras.Model:
+def _shared_2d_branch(input_shape, kernel_initializer, activation, dropout_rate) -> keras.Model:
     suffix = 'shared_branch'
     
     shared_input = keras.layers.Input(shape=input_shape, name='input_' + suffix)
@@ -149,7 +159,8 @@ def _shared_2d_branch(input_shape, kernel_initializer, activation) -> keras.Mode
     # Pass input through multi-level feature pyramid pipeline
     x = feature_pyramid_layer(x, pyramid_layers=3, input_shape=input_shape,
                               num_filters=128, kernel_initializer=kernel_initializer,
-                              activation=activation, suffix=suffix, index='1')
+                              activation=activation, dropout_rate=dropout_rate,
+                              suffix=suffix, index='1')
     
     """
     num_filters = 128
@@ -174,7 +185,7 @@ def _shared_2d_branch(input_shape, kernel_initializer, activation) -> keras.Mode
 
 
 def get_model(sa_input_shape, la_input_shape, num_classes, activation,
-              kernel_initializer = 'glorot_uniform') -> keras.Model:
+              kernel_initializer, dropout_rate) -> keras.Model:
     
     # The short-axis image is expected to have its 3rd dimension as channels: (B, W, H, C)    
     input_sa = keras.Input(shape=sa_input_shape, name='input_sa')
@@ -192,7 +203,8 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
     bias_sa = math.log10((1 - p_sa) / p_sa)
     bias_la = math.log10((1 - p_la) / p_la)
     
-    shared_layers = _shared_2d_branch(la_input_shape, kernel_initializer, activation)
+    shared_layers = _shared_2d_branch(la_input_shape, kernel_initializer, activation,
+                                      dropout_rate)
         
     # Create 'channel' axis that will be carried over when unstacking
     x_sa = tf.expand_dims(x_sa, axis=-1)
@@ -210,14 +222,17 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
     x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='sa_conv3d_1_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_1_2')(x_sa)
+    x_sa = layers.SpatialDropout3D(dropout_rate, name='sa_dropout_1_3')(x_sa)
     
     x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='sa_conv3d_2_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_2_2')(x_sa)
+    x_sa = layers.SpatialDropout3D(dropout_rate, name='sa_dropout_2_3')(x_sa)
     
     x_sa = layers.Conv3D(128, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='sa_conv3d_3_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_3_2')(x_sa)
+    x_sa = layers.SpatialDropout3D(dropout_rate, name='sa_dropout_3_3')(x_sa)
 
     x_sa = layers.Add(name='sa_add_4_1')([x_sa, x_sa_skip])
     
@@ -234,14 +249,17 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
     x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='la_conv2d_1_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_1_2')(x_la)
+    x_la = layers.SpatialDropout2D(dropout_rate, name='la_dropout_1_3')(x_la)
     
     x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='la_conv2d_2_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_2_2')(x_la)
+    x_la = layers.SpatialDropout2D(dropout_rate, name='la_dropout_2_3')(x_la)
     
     x_la = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer=kernel_initializer,
                          name='la_conv2d_3_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_3_2')(x_la)
+    x_la = layers.SpatialDropout2D(dropout_rate, name='la_dropout_3_3')(x_la)
       
     x_la = layers.Add(name='la_add_4_1')([x_la, x_la_skip])
     

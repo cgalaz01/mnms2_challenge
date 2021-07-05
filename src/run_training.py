@@ -113,8 +113,10 @@ if __name__ == '__main__':
         
                                                  
         activation = hparams[hyper_parameters.HP_ACTIVATION]
+        kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
+        dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
         model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
-                                            activation)
+                                            activation, kernel_initializer, dropout_rate)
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]

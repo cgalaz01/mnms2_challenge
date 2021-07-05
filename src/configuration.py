@@ -24,6 +24,7 @@ class HyperParameters():
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))
         self.HP_LOSS = HParamS('loss', hp.Discrete(['combined']))
         self.HP_ACTIVATION = HParamS('activation', hp.Discrete(['relu']))
+        self.HP_KERNEL_INITIALIZER = HParamS('kernel_initializer', hp.Discrete(['glorot_uniform']))
         self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
         
         self.parameter_dict = {}
@@ -35,6 +36,7 @@ class HyperParameters():
         self.parameter_dict[self.HP_OPTIMISER] = self.HP_OPTIMISER.domain.values
         self.parameter_dict[self.HP_LOSS] = self.HP_LOSS.domain.values
         self.parameter_dict[self.HP_ACTIVATION] = self.HP_ACTIVATION.domain.values
+        self.parameter_dict[self.HP_KERNEL_INITIALIZER] = self.HP_KERNEL_INITIALIZER.domain.values
         self.parameter_dict[self.HP_DROPOUT] = self.HP_DROPOUT.domain.values
         
         if search_type == 'grid':
