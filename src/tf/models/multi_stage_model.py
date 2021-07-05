@@ -89,7 +89,7 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
                             kernel_initializer=kernel_initializer,
                             name=suffix + '_pyramid_input_conv2d_1_' + index)(x)
     x_input = layers.Activation(activation, name=suffix + '_pyramid_input_activation_2_' + index)(x_input)
-    x_input = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_input_dropout_3_' + index)
+    x_input = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_input_dropout_3_' + index)(x_input)
     
 
     # Initialise shared layers for the pyramid
@@ -143,7 +143,7 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
                       kernel_initializer=kernel_initializer,
                       name=suffix + '_pyramid_output_conv2d_2_' + index)(x)
     x = layers.Activation(activation, name=suffix + '_pyramid_output_activation_3_' + index)(x)
-    x = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_output_dropout_3_' + index)
+    x = layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_output_dropout_3_' + index)(x)
         
     return x
         
