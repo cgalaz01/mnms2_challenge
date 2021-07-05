@@ -545,3 +545,5 @@ class DataGenerator():
             
             yield patient_data[0], pre_patient_data[0], post_patient_data[0], patient_directory, 'ed'
             yield patient_data[1], pre_patient_data[1], post_patient_data[1], patient_directory, 'es'
+            
+            

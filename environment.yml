@@ -6,7 +6,7 @@ dependencies:
   - python==3.7.10
   - numpy==1.19.5
   - scikit-image==0.16.2
-  - cudatoolkit==11.0.3
+  - cudatoolkit==11.0.221
   - cudnn==8.0.5.39
   - scipy==1.4.1
   - matplotlib

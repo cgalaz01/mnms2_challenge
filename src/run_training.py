@@ -111,8 +111,10 @@ if __name__ == '__main__':
                                                                              max_buffer_size=None,
                                                                              floating_precision=fp)
         
-                                                                      
-        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes)
+                                                 
+        activation = hparams[hyper_parameters.HP_ACTIVATION]
+        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+                                            activation)
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
@@ -145,7 +147,7 @@ if __name__ == '__main__':
             loss=loss,
             metrics=[dice],
             loss_weights={'output_sa': 100,
-                          'output_la': 0.2})
+                          'output_la': 0.5})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
