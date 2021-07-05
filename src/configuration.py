@@ -23,9 +23,9 @@ class HyperParameters():
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.00005]))
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))
         self.HP_LOSS = HParamS('loss', hp.Discrete(['combined']))
-        self.HP_ACTIVATION = HParamS('activation', hp.Discrete(['relu']))
-        self.HP_KERNEL_INITIALIZER = HParamS('kernel_initializer', hp.Discrete(['glorot_uniform']))
-        self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
+        self.HP_ACTIVATION = HParamS('activation', hp.Discrete(['selu']))
+        self.HP_KERNEL_INITIALIZER = HParamS('kernel_initializer', hp.Discrete(['lecun_normal']))
+        self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.15]))
         
         self.parameter_dict = {}
         self.parameter_dict[self.HP_FLOATING_POINT] = self.HP_FLOATING_POINT.domain.values
