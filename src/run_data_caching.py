@@ -18,7 +18,6 @@ def cache_data() -> None:
     for i in dg.train_affine_generator(augment=False, verbose=1):
         continue
 
-
 if __name__ == '__main__':
     cache_data()
     

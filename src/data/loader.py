@@ -184,14 +184,16 @@ class DataGenerator():
             permute.SetOrder([1,0,2])
             patient_data[FileType.sa_ed.value] = permute.Execute(patient_data[FileType.sa_ed.value])
             patient_data[FileType.sa_es.value] = permute.Execute(patient_data[FileType.sa_es.value])
-            patient_data[FileType.sa_ed_gt.value] = permute.Execute(patient_data[FileType.sa_ed_gt.value])
-            patient_data[FileType.sa_es_gt.value] = permute.Execute(patient_data[FileType.sa_es_gt.value])
+            if has_gt:
+                patient_data[FileType.sa_ed_gt.value] = permute.Execute(patient_data[FileType.sa_ed_gt.value])
+                patient_data[FileType.sa_es_gt.value] = permute.Execute(patient_data[FileType.sa_es_gt.value])
             
             flip_axes = [True, False, False]
             patient_data[FileType.sa_ed.value] = sitk.Flip(patient_data[FileType.sa_ed.value], flip_axes)
             patient_data[FileType.sa_es.value] = sitk.Flip(patient_data[FileType.sa_es.value], flip_axes)
-            patient_data[FileType.sa_ed_gt.value] = sitk.Flip(patient_data[FileType.sa_ed_gt.value], flip_axes)
-            patient_data[FileType.sa_es_gt.value] = sitk.Flip(patient_data[FileType.sa_es_gt.value], flip_axes)
+            if has_gt:
+                patient_data[FileType.sa_ed_gt.value] = sitk.Flip(patient_data[FileType.sa_ed_gt.value], flip_axes)
+                patient_data[FileType.sa_es_gt.value] = sitk.Flip(patient_data[FileType.sa_es_gt.value], flip_axes)
         
         # Long-axis
         direction = patient_data[FileType.la_ed.value].GetDirection()
@@ -199,8 +201,9 @@ class DataGenerator():
             flip_axes = [True, False, False]
             patient_data[FileType.la_ed.value] = sitk.Flip(patient_data[FileType.la_ed.value], flip_axes)
             patient_data[FileType.la_es.value] = sitk.Flip(patient_data[FileType.la_es.value], flip_axes)
-            patient_data[FileType.la_ed_gt.value] = sitk.Flip(patient_data[FileType.la_ed_gt.value], flip_axes)
-            patient_data[FileType.la_es_gt.value] = sitk.Flip(patient_data[FileType.la_es_gt.value], flip_axes)
+            if has_gt:
+                patient_data[FileType.la_ed_gt.value] = sitk.Flip(patient_data[FileType.la_ed_gt.value], flip_axes)
+                patient_data[FileType.la_es_gt.value] = sitk.Flip(patient_data[FileType.la_es_gt.value], flip_axes)
         
         
         # Resample images to standardised spacing and size
