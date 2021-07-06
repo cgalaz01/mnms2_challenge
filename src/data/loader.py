@@ -176,6 +176,33 @@ class DataGenerator():
     @staticmethod
     def preprocess_patient_data(patient_data: Dict[str, sitk.Image], spacing: Tuple[float],
                                 size: Tuple[int], has_gt: bool = True, register: bool = True) -> Dict[str, sitk.Image]:
+        # Standardise the orientation of the images
+        # Short-axis
+        direction = patient_data[FileType.sa_ed.value].GetDirection()
+        if direction[0] < 0.001:
+            permute = sitk.PermuteAxesImageFilter()
+            permute.SetOrder([1,0,2])
+            patient_data[FileType.sa_ed.value] = permute.Execute(patient_data[FileType.sa_ed.value])
+            patient_data[FileType.sa_es.value] = permute.Execute(patient_data[FileType.sa_es.value])
+            patient_data[FileType.sa_ed_gt.value] = permute.Execute(patient_data[FileType.sa_ed_gt.value])
+            patient_data[FileType.sa_es_gt.value] = permute.Execute(patient_data[FileType.sa_es_gt.value])
+            
+            flip_axes = [True, False, False]
+            patient_data[FileType.sa_ed.value] = sitk.Flip(patient_data[FileType.sa_ed.value], flip_axes)
+            patient_data[FileType.sa_es.value] = sitk.Flip(patient_data[FileType.sa_es.value], flip_axes)
+            patient_data[FileType.sa_ed_gt.value] = sitk.Flip(patient_data[FileType.sa_ed_gt.value], flip_axes)
+            patient_data[FileType.sa_es_gt.value] = sitk.Flip(patient_data[FileType.sa_es_gt.value], flip_axes)
+        
+        # Long-axis
+        direction = patient_data[FileType.la_ed.value].GetDirection()
+        if direction[8] < 0:
+            flip_axes = [True, False, False]
+            patient_data[FileType.la_ed.value] = sitk.Flip(patient_data[FileType.la_ed.value], flip_axes)
+            patient_data[FileType.la_es.value] = sitk.Flip(patient_data[FileType.la_es.value], flip_axes)
+            patient_data[FileType.la_ed_gt.value] = sitk.Flip(patient_data[FileType.la_ed_gt.value], flip_axes)
+            patient_data[FileType.la_es_gt.value] = sitk.Flip(patient_data[FileType.la_es_gt.value], flip_axes)
+        
+        
         # Resample images to standardised spacing and size
         # Short-axis
         sa_spacing = list(spacing)
@@ -432,7 +459,8 @@ class DataGenerator():
                                                                  affine_matrix)
             self.save_cache(patient_directory, patient_data)
             self.save_memory(patient_directory, patient_data)
-
+                
+        
         if augment:
             patient_data = self.augment_data(patient_data)
         patient_data = self.to_numpy(patient_data, affine_matrix)

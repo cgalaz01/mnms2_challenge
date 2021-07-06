@@ -15,7 +15,7 @@ class DataAugmentation():
         self.max_z_rotation_degrees = 15
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 3
+        self.max_gaussian_blur_sigma = 2
         
         self.rayleigh_scale = 0.005
         
@@ -167,21 +167,19 @@ class DataAugmentation():
     
     def _random_noise(self, image: sitk.Image) -> sitk.Image:
         numpy_image = sitk.GetArrayFromImage(image)
-        # noise_img = util.random_noise(image, mode='gaussian')
         rayleigh_noise = self.random_generator.rayleigh(self.rayleigh_scale,
                                                         size=numpy_image.shape)
         negative_noise = 2 * self.random_generator.randint(0, 2, size=numpy_image.shape) - 1
         numpy_image += (rayleigh_noise * negative_noise)
         
         noisy_image = sitk.GetImageFromArray(numpy_image)
-        noisy_image .CopyInformation(image)
+        noisy_image.CopyInformation(image)
         
         return noisy_image
     
     
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
-        
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
         image, gt_image = self._random_reflect_image(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)

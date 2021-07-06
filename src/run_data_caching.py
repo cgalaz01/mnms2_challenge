@@ -13,12 +13,11 @@ def cache_data() -> None:
     # Remove randomise and train/validation split so that it is easier to track
     # progress with verbose=1
     dg.train_list = dg.get_patient_list(dg.train_directory)
-
     
     print('Saving new cache...')
     for i in dg.train_affine_generator(augment=False, verbose=1):
         continue
-    
+
 
 if __name__ == '__main__':
     cache_data()
