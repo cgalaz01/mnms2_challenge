@@ -11,8 +11,8 @@ class DataAugmentation():
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
         
-        self.min_z_rotation_degrees = -15
-        self.max_z_rotation_degrees = 15
+        self.min_z_rotation_degrees = -30
+        self.max_z_rotation_degrees = 30
     
         self.min_gaussian_blur_sigma = 0
         self.max_gaussian_blur_sigma = 2
@@ -105,35 +105,6 @@ class DataAugmentation():
             return rotated_image, rotated_gt, rotation_matrix
         
         return rotated_image, rotation_matrix
-    
-    
-    @staticmethod
-    def _reflect_image(image: sitk.Image, reflect_axis: List[bool]) -> sitk.Image:
-        if sum(reflect_axis) > 0:        
-            reflected_image = sitk.Flip(image, reflect_axis)
-            return reflected_image
-    
-        return image
-    
-
-    def _random_reflect_image(self, image: sitk.Image, gt_image: Union[None, sitk.Image],
-                              use_cache: bool) -> Tuple[sitk.Image, Union[None, sitk.Image]]:
-        if use_cache:
-            reflect_axis = self._cache_reflect_axis
-        else:
-            reflect = bool(self.random_generator.random() < 0.5)
-            reflect_axis = [False, reflect, False]
-            
-            self._cache_reflect_axis = reflect_axis
-            
-        reflected_image = self._reflect_image(image, reflect_axis)
-        
-        if gt_image is not None:
-            reflected_gt_image = self._reflect_image(gt_image, reflect_axis)
-            
-            return reflected_image, reflected_gt_image
-            
-        return reflected_image
 
         
     @staticmethod
@@ -181,7 +152,6 @@ class DataAugmentation():
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
-        image, gt_image = self._random_reflect_image(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)
         image = self._random_noise(image)
         
