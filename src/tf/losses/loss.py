@@ -197,7 +197,7 @@ class DiceLoss(tf.keras.losses.Loss):
   
   
     def get_config(self):
-        base_config = super(TverskyLoss, self).get_config()
+        base_config = super(DiceLoss, self).get_config()
         return base_config
     
     

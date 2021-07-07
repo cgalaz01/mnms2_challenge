@@ -120,7 +120,7 @@ if __name__ == '__main__':
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
-        decay_steps = 300 * 30 # 300: expected data size per epoch 
+        decay_steps = 300 * 20 # 300: expected data size per epoch 
         learning_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
             decay_steps=decay_steps,
@@ -148,8 +148,8 @@ if __name__ == '__main__':
             optimizer=optimizer,
             loss=loss,
             metrics=[dice],
-            loss_weights={'output_sa': 50,
-                          'output_la': 1})
+            loss_weights={'output_sa': 100,
+                          'output_la': 0.1})
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'

@@ -60,8 +60,7 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
         
         shared_up_level.append(shared_layers)
     
-
-    ratio = 8    
+    
     shared_skip = []
     for i in range(num_pyramid_layers):
         i_s = str(i + 1)
@@ -71,12 +70,7 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                            name=suffix + '_pyramid_skip_conv2d_' + i_s + '_1_' + index))
         shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_skip_activation_' + i_s + '_2_' + index))
         shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_skip_dropout_' + i_s + '_3_' + index))
-        shared_layers.append(layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
-                                           kernel_initializer=kernel_initializer,
-                                           name=suffix + '_pyramid_skip_conv2d_' + i_s + '_4_' + index))
-        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_skip_activation_' + i_s + '_5_' + index))
-        shared_layers.append(layers.SpatialDropout2D(dropout_rate, name=suffix + '_pyramid_skip_dropout_' + i_s + '_6_' + index))
-        shared_layers.append(layers.Add(name=suffix + '_pyramid_skip_add_' + i_s + '_7_' + index))
+        shared_layers.append(layers.Add(name=suffix + '_pyramid_skip_add_' + i_s + '_4_' + index))
         
         shared_skip.append(shared_layers)
     
@@ -156,7 +150,7 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
             shared_se_layers = shared_squeeze_excitation[i]
             x_se = x_skip[i - pyramid_index]
             for se in range(len(shared_se_layers) - 1):
-                x_se = shared_se_layers[s](x_se)
+                x_se = shared_se_layers[se](x_se)
             x = shared_se_layers[-1]([x, x_se])
         
                 
@@ -184,7 +178,6 @@ def _shared_2d_branch(input_shape, kernel_initializer, activation, dropout_rate)
     shared_input = keras.layers.Input(shape=input_shape, name='input_' + suffix)
     
     x = shared_input
-    #x1 = x
 
     # Pass input through multi-level feature pyramid pipeline
     x = feature_pyramid_layer(x, pyramid_layers=3, input_shape=input_shape,
@@ -192,23 +185,6 @@ def _shared_2d_branch(input_shape, kernel_initializer, activation, dropout_rate)
                               activation=activation, dropout_rate=dropout_rate,
                               suffix=suffix, index='1')
     
-    """
-    num_filters = 128
-    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
-                      kernel_initializer=kernel_initializer,
-                      name=suffix + 'stack_conv2d_1_1')(x1)
-    x1 = layers.Activation(activation, name=suffix + 'stack_activation_1_2')(x1)
-    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
-                      kernel_initializer=kernel_initializer,
-                      name=suffix + 'stack_conv2d_2_1')(x1)
-    x1 = layers.Activation(activation, name=suffix + 'stack_activation_2_2')(x1)
-    x1 = layers.Conv2D(num_filters, (3, 3), (1, 1), padding='same',
-                      kernel_initializer=kernel_initializer,
-                      name=suffix + 'stack_conv2d_3_1')(x1)
-    x1 = layers.Activation(activation, name=suffix + 'stack_activation_3_2')(x1)
-    
-    x = layers.Add(name=suffix + 'add_1_1')([x, x1])
-    """
     shared_model = keras.models.Model(shared_input, x)
     
     return shared_model
@@ -303,7 +279,7 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
     # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
     
-    x_la_t = layers.Dropout(rate=0.15, name='la_transformation_dropout_1')(x_la_t)
+    x_la_t = layers.Dropout(rate=dropout_rate, name='la_transformation_dropout_1')(x_la_t)
 
     x_la = layers.Concatenate(name='la_concatenate')([x_la, x_la_t])
     
