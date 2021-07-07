@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 from tf.layers.transformer import spatial_target_transformer
 
     
-    
+
 def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
                                    kernel_initializer, activation, dropout_rate,
                                    suffix, index):
@@ -60,7 +60,8 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
         
         shared_up_level.append(shared_layers)
     
-    
+
+    ratio = 8    
     shared_skip = []
     for i in range(num_pyramid_layers):
         i_s = str(i + 1)
@@ -79,7 +80,29 @@ def _shared_feature_pyramid_layers(num_pyramid_layers, input_shape, num_filters,
         
         shared_skip.append(shared_layers)
     
-    return shared_down_level, shared_up_level, shared_skip
+    
+    ratio = 8
+    shared_squeeze_excitation = []
+    for i in range(num_pyramid_layers):
+        i_s = str(i + 1)
+        shared_layers = []
+        # Squeeze and Excitation block
+        shared_layers.append(layers.GlobalAveragePooling2D(name=suffix + '_pyramid_se_globalaveragepooling2d_' + i_s + '_1_' + index))
+        shared_layers.append(layers.Dense(num_filters // ratio, use_bias=False,
+                                          kernel_initializer=kernel_initializer,
+                                          name=suffix + '_pyramid_se_dense_' + i_s + '_2_' + index))
+        shared_layers.append(layers.Activation(activation, name=suffix + '_pyramid_se_activation_' + i_s + '_3_' + index))
+        shared_layers.append(layers.Dense(num_filters, use_bias=False,
+                                          kernel_initializer=kernel_initializer,
+                                          name=suffix + '_pyramid_se_dense_' + i_s + '_4_' + index))
+        shared_layers.append(layers.Activation('sigmoid', name=suffix + '_pyramid_se_activation_' + i_s + '_5_' + index))
+        shared_layers.append(layers.Dropout(dropout_rate, name=suffix + '_pyramid_se_dropout_' + i_s + '_6_' + index))
+        shared_layers.append(layers.Multiply(name=suffix + '_pyramid_se_multiply_' + i_s + '_7_' + index))
+        
+        shared_squeeze_excitation.append(shared_layers)
+        
+        
+    return shared_down_level, shared_up_level, shared_skip, shared_squeeze_excitation
 
     
 def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_initializer,
@@ -93,14 +116,15 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
     
 
     # Initialise shared layers for the pyramid
-    shared_down_level, shared_up_level, shared_skip = _shared_feature_pyramid_layers(pyramid_layers,
-                                                                                     input_shape,
-                                                                                     num_filters,
-                                                                                     kernel_initializer,
-                                                                                     activation,
-                                                                                     dropout_rate,
-                                                                                     suffix,
-                                                                                     index)
+    (shared_down_level, shared_up_level,
+     shared_skip, shared_squeeze_excitation) = _shared_feature_pyramid_layers(pyramid_layers,
+                                                                              input_shape,
+                                                                              num_filters,
+                                                                              kernel_initializer,
+                                                                              activation,
+                                                                              dropout_rate,
+                                                                              suffix,
+                                                                              index)
     pyramid_output = []
     pyramid_index = 0
     while True:
@@ -115,7 +139,6 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
 
         x_skip.reverse()
         
-
         # Upsampling
         for i in range(pyramid_index, pyramid_layers):
             shared_layers = shared_up_level[i]
@@ -128,6 +151,13 @@ def feature_pyramid_layer(x, pyramid_layers, input_shape, num_filters, kernel_in
             for s in range(len(shared_skip_layers) - 1):
                 x_s = shared_skip_layers[s](x_s)
             x = shared_skip_layers[-1]([x_s, x])
+            
+            # Skip squeeze and excitation connection
+            shared_se_layers = shared_squeeze_excitation[i]
+            x_se = x_skip[i - pyramid_index]
+            for se in range(len(shared_se_layers) - 1):
+                x_se = shared_se_layers[s](x_se)
+            x = shared_se_layers[-1]([x, x_se])
         
                 
         pyramid_output.append(x)
