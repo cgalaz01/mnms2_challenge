@@ -323,7 +323,7 @@ class DataGenerator():
     
     def get_memory(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
         patient_data = self.data_in_memory[patient_directory]
-        return patient_data
+        return patient_data.copy()
 
         
     def augment_data(self, patient_data: Dict[str, sitk.Image]) -> Dict[str, sitk.Image]:        
