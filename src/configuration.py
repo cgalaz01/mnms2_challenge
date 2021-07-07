@@ -18,7 +18,7 @@ class HyperParameters():
         # TODO: Load from file rather than hard-coded in this file
         self.HP_FLOATING_POINT = HParamS('floating_point', hp.Discrete(['16']))
         self.HP_XLA = HParamS('xla_compiler', hp.Discrete([False]))
-        self.HP_EPOCHS = HParamS('epochs', hp.Discrete([200]))
+        self.HP_EPOCHS = HParamS('epochs', hp.Discrete([300]))
         self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([1]))
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.00005]))
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))

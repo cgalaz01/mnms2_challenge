@@ -318,7 +318,7 @@ class DataGenerator():
     
     def save_memory(self, patient_directory: Union[str, Path],
                     patient_data: Dict[str, sitk.Image]) -> None:
-        self.data_in_memory[patient_directory] = patient_data
+        self.data_in_memory[patient_directory] = patient_data.copy()
 
     
     def get_memory(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:
@@ -453,6 +453,7 @@ class DataGenerator():
             patient_data = self.get_memory(patient_directory)
         elif self.is_cached(patient_directory, has_gt):
             patient_data = self.load_cache(patient_directory, has_gt)
+            self.save_memory(patient_directory, patient_data)
         else:
             patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
             patient_data = DataGenerator.preprocess_patient_data(patient_data,
