@@ -54,7 +54,7 @@ class Preprocess():
     @staticmethod
     def normalise_intensities(image: sitk.Image) -> sitk.Image:
         # Normalise image to 0-1 range
-        numpy_image = sitk.GetImageFromArrayView(image)
+        numpy_image = sitk.GetArrayViewFromImage(image)
         normalised_image = sitk.Cast(image, sitk.sitkFloat32) / numpy_image.max()
         
         return normalised_image
@@ -63,7 +63,7 @@ class Preprocess():
     @staticmethod
     def z_score_normalisation(image: sitk.Image) -> sitk.Image:
         epsilon = 1e-7
-        numpy_image = sitk.GetImageFromArrayView(image)
+        numpy_image = sitk.GetArrayViewFromImage(image)
         mean_value = numpy_image.mean()
         standard_deviation = numpy_image.std()
         
