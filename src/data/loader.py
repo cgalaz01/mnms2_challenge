@@ -42,7 +42,8 @@ class OutputAffine(Enum):
 class DataGenerator():
 
     
-    def __init__(self, floating_precision: str = '32') -> None:
+    def __init__(self, floating_precision: str = '32',
+                 memory_cache: bool = True) -> None:
         file_path = Path(__file__).parent.absolute()
         expected_data_directory = os.path.join('..', '..', 'data')
         
@@ -80,6 +81,7 @@ class DataGenerator():
         
         self.affine_shape = (4, 4)
         
+        self.memory_cache = memory_cache
         self.data_in_memory = {}
         
         self.augmentation = DataAugmentation(seed=1235)
@@ -241,12 +243,12 @@ class DataGenerator():
                                                         patient_data[FileType.la_ed.value])
             patient_data[ExtraType.reg_affine.value] = affine_transform
         
-        # Normalise intensities so there are (roughly) [0-1]
-        patient_data[FileType.sa_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_ed.value])
-        patient_data[FileType.sa_es.value] = Preprocess.normalise_intensities(patient_data[FileType.sa_es.value])
+        # Normalise intensities
+        patient_data[FileType.sa_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_ed.value])
+        patient_data[FileType.sa_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_es.value])
         
-        patient_data[FileType.la_ed.value] = Preprocess.normalise_intensities(patient_data[FileType.la_ed.value])
-        patient_data[FileType.la_es.value] = Preprocess.normalise_intensities(patient_data[FileType.la_es.value])
+        patient_data[FileType.la_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_ed.value])
+        patient_data[FileType.la_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_es.value])
         
         return patient_data
         
@@ -318,7 +320,8 @@ class DataGenerator():
     
     def save_memory(self, patient_directory: Union[str, Path],
                     patient_data: Dict[str, sitk.Image]) -> None:
-        self.data_in_memory[patient_directory] = patient_data.copy()
+        if self.memory_cache:
+            self.data_in_memory[patient_directory] = patient_data.copy()
 
     
     def get_memory(self, patient_directory: Union[str, Path]) -> Dict[str, sitk.Image]:

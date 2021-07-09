@@ -4,7 +4,7 @@ from data import DataGenerator
 
 
 def cache_data() -> None:
-    dg = DataGenerator()
+    dg = DataGenerator(memory_cache=False)
     
     # Remove old cache to force recaching
     print('Removing cache...')
