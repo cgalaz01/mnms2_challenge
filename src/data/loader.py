@@ -72,7 +72,7 @@ class DataGenerator():
         
         self.train_list = self.get_patient_list(self.train_directory)
         #self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
-        self.train_list = self.randomise_list_cached(self.train_list)
+        self.train_list = self.randomise_list_cached(self.train_list, self._cached_data_shuffle)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=15/16)
         self.test_list = self.get_patient_list(self.testing_directory)
         
