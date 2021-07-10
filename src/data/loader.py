@@ -41,6 +41,19 @@ class OutputAffine(Enum):
 
 class DataGenerator():
 
+    _cached_data_shuffle = [13, 140, 96, 125, 124, 105, 22, 156, 147, 119, 141,
+                            10, 135, 12, 39, 18, 142, 26, 29, 81, 57, 52, 35, 84,
+                            82, 122, 56, 83, 104, 46, 34, 14, 93, 130, 102, 60,
+                            8, 9, 61, 1, 44, 16, 53, 159, 63, 85, 131, 99, 136,
+                            155, 129, 107, 65, 89, 24, 50, 117, 78, 146, 127, 116,
+                            33, 74, 120, 72, 37, 15, 73, 4, 41, 27, 38, 112, 43,
+                            47, 114, 87, 70, 20, 21, 58, 137, 31, 103, 0, 109,
+                            111, 110, 75, 48, 2, 6, 32, 90, 128, 148, 92, 157,
+                            42, 115, 54, 51, 45, 11, 151, 80, 123, 91, 64, 154,
+                            17, 55, 143, 100, 5, 59, 113, 95, 133, 126, 71, 150,
+                            158, 97, 19, 68, 98, 152, 7, 49, 145, 40, 101, 79,
+                            138, 132, 23, 66, 149, 30, 106, 3, 62, 69, 28, 94, 88,
+                            86, 25, 67, 36, 77, 108, 118, 153, 144, 121, 134, 76, 139]
     
     def __init__(self, floating_precision: str = '32',
                  memory_cache: bool = True) -> None:
@@ -58,7 +71,8 @@ class DataGenerator():
         self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
         
         self.train_list = self.get_patient_list(self.train_directory)
-        self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
+        #self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
+        self.train_list = self.randomise_list_cached(self.train_list)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=15/16)
         self.test_list = self.get_patient_list(self.testing_directory)
         
@@ -107,6 +121,16 @@ class DataGenerator():
         return item_list
     
     
+    @staticmethod
+    def randomise_list_cached(item_list: List[Any], cached_indexes: List[int]) -> List[Any]:
+        shuffled_list = []
+        
+        for i in cached_indexes:
+            cached_indexes.append(item_list[i])
+            
+        return shuffled_list
+        
+        
     @staticmethod
     def split_list(item_list: List[Any], split_fraction: float) -> Tuple[List[Any]]:
         assert 0 < split_fraction < 1
