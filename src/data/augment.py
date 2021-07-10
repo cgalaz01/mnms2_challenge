@@ -23,6 +23,8 @@ class DataAugmentation():
         self.max_abs_y_scale = 0.3
         self.max_abs_z_scale = 0
         
+        self.max_intensity_scale = 1.0
+        
     
     @staticmethod
     def _matrix_from_axis_angle(a: Tuple[float]) -> np.ndarray:
@@ -77,14 +79,20 @@ class DataAugmentation():
         transformation.SetCenter(physical_centre)
         transformation.SetMatrix(rotation_matrix.flatten().tolist())
         
+        
         if is_labels:
             interpolater = sitk.sitkNearestNeighbor
+            padding = 0
         else:
             interpolater = sitk.sitkLinear
+            min_max_filter = sitk.MinimumMaximumImageFilter()
+            min_max_filter.Execute(image)
+            padding = min_max_filter.GetMinimum()
+        
         rotated_image = sitk.Resample(image,
                                       transformation,
                                       interpolater,
-                                      0)
+                                      padding)
         
         return rotated_image, transformation
     
@@ -113,7 +121,7 @@ class DataAugmentation():
     
     @staticmethod
     def resample_image(image: sitk.Image, out_spacing: Tuple[float] = (1.0, 1.0, 1.0),
-                       is_label: bool = False, pad_value: float = 0) -> sitk.Image:
+                       is_label: bool = False) -> sitk.Image:
         original_spacing = np.array(image.GetSpacing())
         original_size = np.array(image.GetSize())
         
@@ -136,12 +144,17 @@ class DataAugmentation():
         resample.SetOutputDirection(image.GetDirection())
         resample.SetOutputOrigin(out_origin.tolist())
         resample.SetTransform(sitk.Transform())
-        resample.SetDefaultPixelValue(pad_value)
     
         if is_label:
             resample.SetInterpolator(sitk.sitkNearestNeighbor)
+            padding = 0
+            resample.SetDefaultPixelValue(padding)
         else:
             resample.SetInterpolator(sitk.sitkLinear)
+            min_max_filter = sitk.MinimumMaximumImageFilter()
+            min_max_filter.Execute(image)
+            padding = min_max_filter.GetMinimum()
+            resample.SetDefaultPixelValue(padding)
     
         return resample.Execute(image)
     
@@ -231,12 +244,21 @@ class DataAugmentation():
         return noisy_image
     
     
+    def _random_intensity_mean_shift(self, image: sitk.Image) -> sitk.Image:
+        intensity_shift = self.random_generator.uniform(low=-self.max_intensity_scale,
+                                                        high=self.max_intensity_scale)
+        image += intensity_shift
+        
+        return image
+        
+        
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
         image, gt_image = self._random_image_scale(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)
         image = self._random_noise(image)
+        image = self._random_intensity_mean_shift(image)
         
         composite_transform = sitk.CompositeTransform([rotation])
         
