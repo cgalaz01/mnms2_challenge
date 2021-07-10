@@ -126,7 +126,7 @@ class DataGenerator():
         shuffled_list = []
         
         for i in cached_indexes:
-            cached_indexes.append(item_list[i])
+            shuffled_list.append(item_list[i])
             
         return shuffled_list
         

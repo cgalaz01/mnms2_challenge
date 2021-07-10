@@ -15,12 +15,12 @@ class DataAugmentation():
         self.max_z_rotation_degrees = 30
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 3
+        self.max_gaussian_blur_sigma = 4
         
-        self.rayleigh_scale = 0.005
+        self.rayleigh_scale = 0.01
         
-        self.max_abs_x_scale = 0.2
-        self.max_abs_y_scale = 0.2
+        self.max_abs_x_scale = 0.3
+        self.max_abs_y_scale = 0.3
         self.max_abs_z_scale = 0
         
     
@@ -112,34 +112,50 @@ class DataAugmentation():
 
     
     @staticmethod
-    def _scale_image(image: sitk.Image, x_scale: float, y_scale: float,
-                     z_scale: float, is_labels: bool) -> sitk.Image:
-        dimension = 3
-        transformation = sitk.AffineTransform(dimension)
+    def resample_image(image: sitk.Image, out_spacing: Tuple[float] = (1.0, 1.0, 1.0),
+                       is_label: bool = False, pad_value: float = 0) -> sitk.Image:
+        original_spacing = np.array(image.GetSpacing())
+        original_size = np.array(image.GetSize())
         
-        # Find image centre
-        width, height, depth = image.GetSize()
-        physical_centre = image.TransformIndexToPhysicalPoint((width // 2,
-                                                               height // 2,
-                                                               depth // 2))
-        transformation.SetCenter(physical_centre)
-        
-        matrix = np.array(transformation.GetMatrix()).reshape((dimension,dimension))
-        matrix[0, 0] = x_scale
-        matrix[1, 1] = y_scale
-        matrix[2, 2] = z_scale
-        transformation.SetMatrix(matrix.ravel())
-        
-        if is_labels:
-            interpolater = sitk.sitkNearestNeighbor
+        if original_size[-1] == 1:
+            out_spacing = list(out_spacing)
+            out_spacing[-1] = original_spacing[-1]
+            out_spacing = tuple(out_spacing)
+    
+        original_direction = np.array(image.GetDirection()).reshape(len(original_spacing),-1)
+        original_center = (np.array(original_size, dtype=float) - 1.0) / 2.0 * original_spacing
+        out_center = (np.array(original_size, dtype=float) - 1.0) / 2.0 * np.array(out_spacing)
+    
+        original_center = np.matmul(original_direction, original_center)
+        out_center = np.matmul(original_direction, out_center)
+        out_origin = np.array(image.GetOrigin()) + (original_center - out_center)
+    
+        resample = sitk.ResampleImageFilter()
+        resample.SetOutputSpacing(out_spacing)
+        resample.SetSize(original_size.tolist())
+        resample.SetOutputDirection(image.GetDirection())
+        resample.SetOutputOrigin(out_origin.tolist())
+        resample.SetTransform(sitk.Transform())
+        resample.SetDefaultPixelValue(pad_value)
+    
+        if is_label:
+            resample.SetInterpolator(sitk.sitkNearestNeighbor)
         else:
-            interpolater = sitk.sitkLinear
-        scaled_image = sitk.Resample(image,
-                                     transformation,
-                                     interpolater,
-                                     0)
-        
-        return scaled_image, transformation
+            resample.SetInterpolator(sitk.sitkLinear)
+    
+        return resample.Execute(image)
+    
+    
+    @staticmethod
+    def _scale_image(image: sitk.Image, x_scale: float, y_scale: float,
+                     z_scale: float, is_label: bool) -> sitk.Image:     
+        spacing = np.asarray(image.GetSpacing())
+        spacing[0] *= x_scale
+        spacing[1] *= y_scale
+        spacing[2] *= z_scale
+        scaled_image = DataAugmentation.resample_image(image, spacing, is_label=is_label)
+
+        return scaled_image
         
     
     def _random_image_scale(self, image: sitk.Image, gt_image: Union[None, sitk.Image],
@@ -161,22 +177,16 @@ class DataAugmentation():
             self._cache_y_scale = y_scale
             self._cache_z_scale= z_scale
             
-        scaled_image, scale_matrix = self._scale_image(image,
-                                                       x_scale,
-                                                       y_scale,
-                                                       z_scale,
-                                                       is_labels=False)
+        scaled_image = self._scale_image(image, x_scale, y_scale, z_scale,
+                                         is_label=False)
         
         if gt_image is not None:
-            scaled_gt, scale_matrix = self._scale_image(gt_image,
-                                                        x_scale,
-                                                        y_scale,
-                                                        z_scale,
-                                                        is_labels=True)
+            scaled_gt = self._scale_image(gt_image, x_scale, y_scale, z_scale,
+                                          is_label=True)
         
-            return scaled_image, scaled_gt, scale_matrix
+            return scaled_image, scaled_gt
         
-        return scaled_image, scale_matrix
+        return scaled_image
             
         
     @staticmethod
@@ -224,13 +234,11 @@ class DataAugmentation():
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
-        image, gt_image, scale = self._random_image_scale(image, gt_image, use_cache)
+        image, gt_image = self._random_image_scale(image, gt_image, use_cache)
         image = self._random_blur_image(image, use_cache)
         image = self._random_noise(image)
         
-        composite_transform = sitk.Transform(3, sitk.sitkComposite)
-        composite_transform.AddTransform(rotation)
-        composite_transform.AddTransform(scale)
+        composite_transform = sitk.CompositeTransform([rotation])
         
         return image, gt_image, composite_transform
 
