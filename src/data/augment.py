@@ -19,11 +19,11 @@ class DataAugmentation():
         
         self.rayleigh_scale = 0.01
         
-        self.max_abs_x_scale = 0.3
-        self.max_abs_y_scale = 0.3
+        self.max_abs_x_scale = 0.2
+        self.max_abs_y_scale = 0.2
         self.max_abs_z_scale = 0
         
-        self.max_intensity_scale = 1.0
+        self.max_intensity_scale = 0.5
         
     
     @staticmethod
