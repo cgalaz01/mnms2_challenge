@@ -41,19 +41,19 @@ class OutputAffine(Enum):
 
 class DataGenerator():
 
-    _cached_data_shuffle = [13, 140, 96, 125, 124, 105, 22, 156, 147, 119, 141,
-                            10, 135, 12, 39, 18, 142, 26, 29, 81, 57, 52, 35, 84,
-                            82, 122, 56, 83, 104, 46, 34, 14, 93, 130, 102, 60,
-                            8, 9, 61, 1, 44, 16, 53, 159, 63, 85, 131, 99, 136,
-                            155, 129, 107, 65, 89, 24, 50, 117, 78, 146, 127, 116,
-                            33, 74, 120, 72, 37, 15, 73, 4, 41, 27, 38, 112, 43,
-                            47, 114, 87, 70, 20, 21, 58, 137, 31, 103, 0, 109,
-                            111, 110, 75, 48, 2, 6, 32, 90, 128, 148, 92, 157,
-                            42, 115, 54, 51, 45, 11, 151, 80, 123, 91, 64, 154,
-                            17, 55, 143, 100, 5, 59, 113, 95, 133, 126, 71, 150,
-                            158, 97, 19, 68, 98, 152, 7, 49, 145, 40, 101, 79,
-                            138, 132, 23, 66, 149, 30, 106, 3, 62, 69, 28, 94, 88,
-                            86, 25, 67, 36, 77, 108, 118, 153, 144, 121, 134, 76, 139]
+    _cached_data_shuffle = [83, 150, 50, 13, 23, 1, 108, 139, 143, 53, 110, 82,
+                            112, 54, 22, 33, 104, 63, 71, 7, 42, 28, 49, 122, 40,
+                            16, 65, 29, 60, 64, 138, 2, 98, 52, 115, 17, 133, 47,
+                            74, 19, 80, 113, 101, 20, 142, 119, 4, 46, 88, 111,
+                            45, 9, 144, 151, 149, 129, 68, 116, 105, 121, 91, 27,
+                            106, 24, 127, 153, 41, 85, 126, 8, 3, 124, 141, 134,
+                            67, 78, 148, 51, 94, 73, 5, 156, 89, 35, 114, 84, 15,
+                            21, 128, 77, 97, 123, 32, 145, 57, 18, 135, 146, 76,
+                            70, 79, 125, 38, 26, 55, 140, 31, 136, 93, 137, 25,
+                            109, 152, 37, 30, 86, 69, 120, 59, 100, 147, 96, 87,
+                            66, 48, 81, 160, 36, 99, 56, 90, 11, 61, 117, 158, 34,
+                            92, 75, 159, 103, 44, 131, 102, 10, 118, 107, 58, 62,
+                            155, 72, 12, 14, 154, 6, 130, 157, 39, 95, 132, 43]
     
     def __init__(self, floating_precision: str = '32',
                  memory_cache: bool = True) -> None:
@@ -70,9 +70,10 @@ class DataGenerator():
         # (It does not have ground truth - validated on submission only)
         self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
         
-        self.train_list = self.get_patient_list(self.train_directory)
+        #self.train_list = self.get_patient_list(self.train_directory)
         #self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
-        self.train_list = self.randomise_list_cached(self.train_list, self._cached_data_shuffle)
+        #self.train_list = self.randomise_list_cached(self.train_list, self._cached_data_shuffle)
+        self.train_list = self.get_cached_patient_list(self.train_directory, self._cached_data_shuffle)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=155/160)
         self.test_list = self.get_patient_list(self.testing_directory)
         
@@ -109,6 +110,14 @@ class DataGenerator():
         return files
     
     
+    @staticmethod
+    def get_cached_patient_list(directory: Union[str, Path], cached_data) -> List[Path]:
+        files = [Path(os.path.join(directory, f'{cached_data[i]:03}'))
+                 for i in range(len(cached_data))]
+        
+        return files
+    
+        
     @staticmethod
     def randomise_list(item_list: List[Any], seed: Union[None, int]=None,
                        inplace: bool=True) -> List[Any]:
