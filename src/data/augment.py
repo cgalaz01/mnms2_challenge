@@ -15,12 +15,12 @@ class DataAugmentation():
         self.max_z_rotation_degrees = 30
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 4
+        self.max_gaussian_blur_sigma = 3
         
         self.rayleigh_scale = 0.01
         
-        self.max_abs_x_scale = 0.2
-        self.max_abs_y_scale = 0.2
+        self.max_abs_x_scale = 0.3
+        self.max_abs_y_scale = 0.3
         self.max_abs_z_scale = 0
         
         self.max_intensity_scale = 0.5
