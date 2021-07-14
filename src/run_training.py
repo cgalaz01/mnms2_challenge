@@ -120,11 +120,11 @@ if __name__ == '__main__':
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
-        decay_steps = 300 * 20 # 300: expected data size per epoch 
+        decay_steps = 316 * 30 # 300: expected data size per epoch 
         learning_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
             decay_steps=decay_steps,
-            decay_rate=0.95)
+            decay_rate=0.9)
         
         if hparams[hyper_parameters.HP_OPTIMISER] == 'adam':
             optimizer = keras.optimizers.Adam(learning_rate=learning_schedule)
