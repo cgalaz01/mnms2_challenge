@@ -160,6 +160,9 @@ if __name__ == '__main__':
                   callbacks=get_callbacks(prefix, checkpoint_path, hparams),
                   verbose=1)
         
+        save_checkpoint_path = os.path.join(checkpoint_path, 'last_epoch')
+        model.save_weights(save_checkpoint_path)
+        
         model.load_weights(checkpoint_path)
         visual_summary(model, data_gen, 'tmp/output_results')
         test_prediction(model)
