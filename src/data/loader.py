@@ -11,7 +11,7 @@ import numpy as np
 import SimpleITK as sitk
 
 from .augment import DataAugmentation
-from .preprocess import Preprocess, Registration
+from .preprocess import Preprocess, Registration, RegionOfInterest
 
 
 class FileType(Enum):
@@ -245,15 +245,16 @@ class DataGenerator():
         # Short-axis
         sa_spacing = list(spacing)
         sa_spacing[2] = patient_data[FileType.sa_ed.value].GetSpacing()[2]
+        sa_size = None
         patient_data[FileType.sa_ed.value] = Preprocess.resample_image(patient_data[FileType.sa_ed.value],
-                                                                       sa_spacing, size, is_label=False)
+                                                                       sa_spacing, sa_size, is_label=False)
         patient_data[FileType.sa_es.value] = Preprocess.resample_image(patient_data[FileType.sa_es.value],
-                                                                       sa_spacing, size, is_label=False)
+                                                                       sa_spacing, sa_size, is_label=False)
         if has_gt:
             patient_data[FileType.sa_ed_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_ed_gt.value],
-                                                                              sa_spacing, size, is_label=True)
+                                                                              sa_spacing, sa_size, is_label=True)
             patient_data[FileType.sa_es_gt.value] = Preprocess.resample_image(patient_data[FileType.sa_es_gt.value],
-                                                                              sa_spacing, size, is_label=True)
+                                                                              sa_spacing, sa_size, is_label=True)
 
         # Long-axis
         la_spacing = list(spacing)
@@ -270,11 +271,58 @@ class DataGenerator():
             patient_data[FileType.la_es_gt.value] = Preprocess.resample_image(patient_data[FileType.la_es_gt.value],
                                                                               la_spacing, la_size, is_label=True)
         
+        # Find heart ROI
+        # Short-axis
+        sa_x_centre, sa_y_centre = RegionOfInterest.detect_roi_sa(patient_data[FileType.sa_ed.value],
+                                                                  patient_data[FileType.sa_es.value])
+        
+        # Long-axis
+        la_x_centre, la_y_centre = RegionOfInterest.detect_roi_la(patient_data[FileType.la_ed.value],
+                                                                  patient_data[FileType.la_es.value])
+        
+        # Crop and/or pad to centre size
+        # Short-axis
+        sa_centroid = (sa_x_centre, sa_y_centre, patient_data[FileType.sa_ed.value].GetSize()[-1] - 1)
+        patient_data[FileType.sa_ed.value] = Preprocess.crop(patient_data[FileType.sa_ed.value],
+                                                             sa_centroid,
+                                                             size)
+        patient_data[FileType.sa_es.value] = Preprocess.crop(patient_data[FileType.sa_es.value],
+                                                             sa_centroid,
+                                                             size)
+        
+        if has_gt:
+            patient_data[FileType.sa_ed_gt.value] = Preprocess.crop(patient_data[FileType.sa_ed_gt.value],
+                                                                    sa_centroid,
+                                                                    size)
+            patient_data[FileType.sa_es_gt.value] = Preprocess.crop(patient_data[FileType.sa_es_gt.value],
+                                                                    sa_centroid,
+                                                                    size)
+            
+        # Long-axis
+        la_centroid = (la_x_centre, la_y_centre, 0)
+        la_size = list(size)
+        la_size[2] = 1
+        patient_data[FileType.la_ed.value] = Preprocess.crop(patient_data[FileType.la_ed.value],
+                                                             la_centroid,
+                                                             la_size)
+        patient_data[FileType.la_es.value] = Preprocess.crop(patient_data[FileType.la_es.value],
+                                                             la_centroid,
+                                                             la_size)
+        
+        if has_gt:
+            patient_data[FileType.la_ed_gt.value] = Preprocess.crop(patient_data[FileType.la_ed_gt.value],
+                                                                    la_centroid,
+                                                                    la_size)
+            patient_data[FileType.la_es_gt.value] = Preprocess.crop(patient_data[FileType.la_es_gt.value],
+                                                                    la_centroid,
+                                                                    la_size)
+            
         # Register short-axis to long axis (only for end diastolic for faster execution time)
         if register:
             affine_transform, _ = Registration.register(patient_data[FileType.sa_ed.value],
                                                         patient_data[FileType.la_ed.value])
             patient_data[ExtraType.reg_affine.value] = affine_transform
+        
         
         # Normalise intensities
         patient_data[FileType.sa_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_ed.value])

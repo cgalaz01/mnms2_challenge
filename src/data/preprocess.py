@@ -170,7 +170,7 @@ class Preprocess():
     @staticmethod
     def resample_image(image: sitk.Image, out_spacing: Tuple[float] = (1.0, 1.0, 1.0),
                        out_size: Union[None, Tuple[int]] = None, is_label: bool = False,
-                       pad_value: float=0) -> sitk.Image:
+                       pad_value: float = 0) -> sitk.Image:
         original_spacing = np.array(image.GetSpacing())
         original_size = np.array(image.GetSize())
         
@@ -206,6 +206,56 @@ class Preprocess():
             resample.SetInterpolator(sitk.sitkBSpline)
     
         return resample.Execute(image)
+    
+    
+    @staticmethod
+    def _get_bounds_and_padding(dimension_image_size: int, dimension_centroid: int,
+                                dimension_crop_length: int) -> Tuple[int]:
+        
+        min_index = dimension_centroid - dimension_crop_length // 2
+        pad_min_value = 0
+        if min_index < 0:
+            pad_min_value = abs(min_index)
+            min_index = 0
+        
+        max_index = min_index + dimension_crop_length
+        pad_max_value = 0
+        if max_index > dimension_image_size:
+            pad_max_value = max_index - dimension_image_size
+    
+        return min_index, max_index, pad_min_value, pad_max_value
+    
+    
+    @staticmethod
+    def crop(image: sitk.Image, centroid: Tuple[int], length: Tuple[int],
+             ignore_z_axis: bool = False, padding: float = 0) -> sitk.Image:
+        size = image.GetSize()
+        
+        min_x, max_x, pad_min_x, pad_max_x = Preprocess._get_bounds_and_padding(size[0],
+                                                                                centroid[0],
+                                                                                length[0])
+        
+        min_y, max_y, pad_min_y, pad_max_y = Preprocess._get_bounds_and_padding(size[1],
+                                                                                centroid[1],
+                                                                                length[1])
+        
+        min_z, max_z, pad_min_z, pad_max_z = Preprocess._get_bounds_and_padding(size[2],
+                                                                                centroid[2],
+                                                                                length[2])
+        
+        if ignore_z_axis:
+            pad_min_z = 0
+            pad_max_z = 0
+            min_z = 0
+            max_z = size[-1]
+        
+        lower_padding = np.asarray([pad_max_x, pad_max_y, pad_max_z]).astype(np.uint32).tolist()
+        upper_padding = np.asarray([pad_min_x, pad_min_y, pad_min_z]).astype(np.uint32).tolist()
+        padded_image = sitk.ConstantPad(image, upper_padding, lower_padding, padding)
+        
+        cropped_image = padded_image[min_x: max_x, min_y: max_y, min_z: max_z]
+        
+        return cropped_image
     
     
     @staticmethod
