@@ -5,14 +5,171 @@ from multiprocessing import Pool
 import numpy as np
 from scipy import ndimage
 
+from skimage import color
+from skimage.feature import canny
+from skimage.transform import hough_circle, hough_circle_peaks
+from skimage.draw import circle_perimeter
+
 import SimpleITK as sitk
+
+
+class RegionOfInterest():
+    
+    def __init__(self):
+        pass
+    
+    
+    @staticmethod
+    def _mean_roi_centroid(centroids_x: Tuple[int], centroids_y: Tuple[int]) -> Tuple[int]:
+        centroid_x = int(np.asarray(centroids_x).mean())    
+        centroid_y = int(np.asarray(centroids_y).mean())
+        
+        return centroid_x, centroid_y
+    
+    
+    @staticmethod
+    def detect_roi_sa(sitk_ed_image: sitk.Image, sitk_es_image: sitk.Image,
+                      debug: bool = False) -> Tuple[int]:
+        ed_image = sitk.GetArrayFromImage(sitk_ed_image)
+        es_image = sitk.GetArrayFromImage(sitk_es_image)
+        ed_image = np.swapaxes(ed_image, 0, -1)
+        es_image = np.swapaxes(es_image, 0, -1)
+        
+        z_indexes = [0, 4]
+        all_cx = []
+        all_cy = []
+        for z in z_indexes:
+            ed_image = ed_image[:, :, z]
+            es_image = es_image[:, :, z]
+            
+            width = ed_image.shape[0]
+            height = ed_image.shape[1]
+            image_size = (width + height) // 2
+                
+            diff_image = abs(ed_image - es_image)
+            edge_image = canny(diff_image, sigma=2.0, low_threshold=0.8, high_threshold=0.98,
+                               use_quantiles=True)
+            
+            lower_range = int(image_size * 0.08)    
+            upper_range = int(image_size * 0.28)
+            hough_radii = np.arange(lower_range, upper_range, 3)
+            hough_res = hough_circle(edge_image, hough_radii)
+            
+            # Select the most prominent 3 circles
+            accums, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii,
+                                                       total_num_peaks=10,
+                                                       normalize=False)
+            
+            all_cx.extend(cx)
+            all_cy.extend(cy)
+            
+            if debug:
+                import matplotlib.pyplot as plt
+                
+                plt.imshow(ed_image)
+                plt.show()
+                plt.close()
+                plt.imshow(es_image)
+                plt.show()
+                plt.close()
+                
+                plt.imshow(diff_image)
+                plt.show()
+                plt.close()
+                 
+                plt.imshow(edge_image)
+                plt.show()
+                plt.close()
+                
+                mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(cx, cy)
+                
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10, 4))
+                image = ((ed_image - ed_image.min()) *
+                         (1 / (ed_image.max() - ed_image.min()) * 255)).astype('uint8')
+                image = color.gray2rgb(image)
+                for center_y, center_x, radius in zip(cy, cx, radii):
+                    circy, circx = circle_perimeter(center_y, center_x, radius,
+                                                    shape=image.shape)
+                    image[circy, circx] = (220, 20, 20)
+                
+                ax.imshow(image, cmap=plt.cm.gray)
+                ax.scatter([mean_cx], [mean_cy])
+                plt.show()
+            
+        mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(all_cx, all_cy)
+        
+        return mean_cx, mean_cy
+
+    
+    @staticmethod
+    def detect_roi_la(sitk_ed_image: sitk.Image, sitk_es_image: sitk.Image,
+                      debug: bool = False) -> Tuple[int]:
+        ed_image = sitk.GetArrayFromImage(sitk_ed_image)
+        es_image = sitk.GetArrayFromImage(sitk_es_image)
+        ed_image = np.swapaxes(ed_image, 0, -1)
+        es_image = np.swapaxes(es_image, 0, -1)
+        
+        ed_image = ed_image[:, :, 0]
+        es_image = es_image[:, :, 0]
+        
+        diff_image = abs(ed_image - es_image)
+        edge_image = canny(diff_image, sigma=2.0, low_threshold=0.6, high_threshold=0.96,
+                           use_quantiles=True)
+        
+        width = ed_image.shape[1]
+        height = ed_image.shape[0]
+        image_size = (width + height) // 2
+        
+        lower_range = int(image_size * 0.1)    
+        upper_range = int(image_size * 0.35)
+        hough_radii = np.arange(lower_range, upper_range, 3)
+        hough_res = hough_circle(edge_image, hough_radii)
+        
+        accums, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii,
+                                                   total_num_peaks=10,
+                                                   normalize=False)
+        
+        mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(cx, cy)
+        
+        if debug:
+            import matplotlib.pyplot as plt
+            plt.imshow(ed_image)
+            plt.show()
+            plt.close()
+            plt.imshow(es_image)
+            plt.show()
+            plt.close()
+            
+            plt.imshow(diff_image)
+            plt.show()
+            plt.close()
+            
+            plt.imshow(edge_image)
+            plt.show()
+            plt.close()
+            
+            fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10, 4))
+            image = ((ed_image - ed_image.min()) *
+                     (1/(ed_image.max() - ed_image.min()) * 255)).astype('uint8')
+            image = color.gray2rgb(image)
+            for center_y, center_x, radius in zip(cy, cx, radii):
+                circy, circx = circle_perimeter(center_y, center_x, radius,
+                                                shape=image.shape)
+                image[circy, circx] = (220, 20, 20)
+            
+            ax.imshow(image, cmap=plt.cm.gray)
+            plt.show()
+         
+        
+        return mean_cx, mean_cy
+
 
 
 class Preprocess():
     
     @staticmethod
-    def resample_image(image: sitk.Image, out_spacing: Tuple[float]=(1.0, 1.0, 1.0),
-                       out_size: Union[None, Tuple[int]]=None, is_label: bool=False,
+    def resample_image(image: sitk.Image, out_spacing: Tuple[float] = (1.0, 1.0, 1.0),
+                       out_size: Union[None, Tuple[int]] = None, is_label: bool = False,
                        pad_value: float=0) -> sitk.Image:
         original_spacing = np.array(image.GetSpacing())
         original_size = np.array(image.GetSize())

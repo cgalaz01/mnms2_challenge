@@ -15,7 +15,7 @@ class DataAugmentation():
         self.max_z_rotation_degrees = 25
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 4
+        self.max_gaussian_blur_sigma = 3
         
         self.rayleigh_scale = 0.01
         
