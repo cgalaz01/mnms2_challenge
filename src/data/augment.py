@@ -11,11 +11,11 @@ class DataAugmentation():
     def __init__(self, seed: Union[int, None]):
         self.random_generator = np.random.RandomState(seed)
         
-        self.min_z_rotation_degrees = -30
-        self.max_z_rotation_degrees = 30
+        self.min_z_rotation_degrees = -25
+        self.max_z_rotation_degrees = 25
     
         self.min_gaussian_blur_sigma = 0
-        self.max_gaussian_blur_sigma = 3
+        self.max_gaussian_blur_sigma = 4
         
         self.rayleigh_scale = 0.01
         
@@ -24,6 +24,10 @@ class DataAugmentation():
         self.max_abs_z_scale = 0
         
         self.max_intensity_scale = 0.5
+        
+        self.dropout_patch_probability = 0.6
+        self.dropout_patch_width = 20
+        self.dropout_patch_height = 20
         
     
     @staticmethod
@@ -252,6 +256,42 @@ class DataAugmentation():
         return image
         
         
+    def _patch_dropout(self, image: np.ndarray, slice_index: int,
+                       slice_coordinate: Tuple[int], dropout_value: float) -> np.ndarray:
+        min_x = slice_coordinate[0] - self.dropout_patch_width // 2
+        max_x = min_x + self.dropout_patch_width
+        
+        min_y = slice_coordinate[1] - self.dropout_patch_height // 2
+        max_y = min_y + self.dropout_patch_height
+        
+        image[slice_index, min_y: max_y + 1, min_x: max_x + 1] = dropout_value
+
+        return image        
+
+
+    def _random_patch_dropout(self, image: sitk.Image, gt_image: sitk.Image) -> sitk.Image:
+        if self.random_generator.uniform() < self.dropout_patch_probability:
+            return image
+        
+        numpy_image = sitk.GetArrayFromImage(image)
+        numpy_gt = sitk.GetArrayViewFromImage(gt_image)
+        
+        dropout_value = 0 #numpy_image.min()
+        
+        for slice_index in range(numpy_image.shape[0]):
+            y, x = np.where(numpy_gt[slice_index, :, :] == 3)
+            if len(y) > 0:
+                slice_coordinate_index = np.random.randint(len(y))
+                slice_coordinate = [x[slice_coordinate_index], y[slice_coordinate_index]]
+                numpy_image = self._patch_dropout(numpy_image, slice_index,
+                                                  slice_coordinate, dropout_value)
+        
+        dropout_image = sitk.GetImageFromArray(numpy_image)
+        dropout_image.CopyInformation(image)
+        
+        return dropout_image
+    
+        
     def random_augmentation(self, image: sitk.Image, gt_image: sitk.Image,
                             use_cache: bool = False) -> Tuple[sitk.Image, sitk.Image, sitk.Euler3DTransform]:
         image, gt_image, rotation = self._random_rotate_z_axis(image, gt_image, use_cache)
@@ -259,6 +299,7 @@ class DataAugmentation():
         image = self._random_blur_image(image, use_cache)
         image = self._random_noise(image)
         image = self._random_intensity_mean_shift(image)
+        image = self._random_patch_dropout(image, gt_image)
         
         composite_transform = sitk.CompositeTransform([rotation])
         

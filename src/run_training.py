@@ -25,7 +25,6 @@ from run_test_inference import test_prediction
 
 
 __SEED = 1456
-#os.environ['PYTHONHASHSEED'] = str(__SEED)
 random.seed(__SEED)
 tf.random.set_seed(__SEED)
 np.random.seed(__SEED)
