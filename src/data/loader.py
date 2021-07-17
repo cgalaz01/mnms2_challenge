@@ -259,8 +259,7 @@ class DataGenerator():
         # Long-axis
         la_spacing = list(spacing)
         la_spacing[2] = patient_data[FileType.la_ed.value].GetSpacing()[2]
-        la_size = list(size)
-        la_size[2] = 1
+        la_size = None
         patient_data[FileType.la_ed.value] = Preprocess.resample_image(patient_data[FileType.la_ed.value],
                                                                        la_spacing, la_size, is_label=False)
         patient_data[FileType.la_es.value] = Preprocess.resample_image(patient_data[FileType.la_es.value],
@@ -273,16 +272,17 @@ class DataGenerator():
         
         # Find heart ROI
         # Short-axis
-        sa_x_centre, sa_y_centre = RegionOfInterest.detect_roi_sa(patient_data[FileType.sa_ed.value],
+        # TODO: Find where x/y are switched
+        sa_y_centre, sa_x_centre = RegionOfInterest.detect_roi_sa(patient_data[FileType.sa_ed.value],
                                                                   patient_data[FileType.sa_es.value])
         
         # Long-axis
-        la_x_centre, la_y_centre = RegionOfInterest.detect_roi_la(patient_data[FileType.la_ed.value],
+        la_y_centre, la_x_centre = RegionOfInterest.detect_roi_la(patient_data[FileType.la_ed.value],
                                                                   patient_data[FileType.la_es.value])
         
         # Crop and/or pad to centre size
         # Short-axis
-        sa_centroid = (sa_x_centre, sa_y_centre, patient_data[FileType.sa_ed.value].GetSize()[-1] - 1)
+        sa_centroid = (sa_x_centre, sa_y_centre, size[-1] // 2)
         patient_data[FileType.sa_ed.value] = Preprocess.crop(patient_data[FileType.sa_ed.value],
                                                              sa_centroid,
                                                              size)

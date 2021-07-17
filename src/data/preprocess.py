@@ -39,14 +39,14 @@ class RegionOfInterest():
         all_cx = []
         all_cy = []
         for z in z_indexes:
-            ed_image = ed_image[:, :, z]
-            es_image = es_image[:, :, z]
+            ed_slice = ed_image[:, :, z]
+            es_slice = es_image[:, :, z]
             
-            width = ed_image.shape[0]
-            height = ed_image.shape[1]
+            width = ed_slice.shape[0]
+            height = ed_slice.shape[1]
             image_size = (width + height) // 2
                 
-            diff_image = abs(ed_image - es_image)
+            diff_image = abs(ed_slice - es_slice)
             edge_image = canny(diff_image, sigma=2.0, low_threshold=0.8, high_threshold=0.98,
                                use_quantiles=True)
             
@@ -66,10 +66,10 @@ class RegionOfInterest():
             if debug:
                 import matplotlib.pyplot as plt
                 
-                plt.imshow(ed_image)
+                plt.imshow(ed_slice)
                 plt.show()
                 plt.close()
-                plt.imshow(es_image)
+                plt.imshow(es_slice)
                 plt.show()
                 plt.close()
                 
@@ -84,8 +84,8 @@ class RegionOfInterest():
                 mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(cx, cy)
                 
                 fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10, 4))
-                image = ((ed_image - ed_image.min()) *
-                         (1 / (ed_image.max() - ed_image.min()) * 255)).astype('uint8')
+                image = ((ed_slice - ed_slice.min()) *
+                         (1 / (ed_slice.max() - ed_slice.min()) * 255)).astype('uint8')
                 image = color.gray2rgb(image)
                 for center_y, center_x, radius in zip(cy, cx, radii):
                     circy, circx = circle_perimeter(center_y, center_x, radius,
@@ -109,15 +109,15 @@ class RegionOfInterest():
         ed_image = np.swapaxes(ed_image, 0, -1)
         es_image = np.swapaxes(es_image, 0, -1)
         
-        ed_image = ed_image[:, :, 0]
-        es_image = es_image[:, :, 0]
+        ed_slice = ed_image[:, :, 0]
+        es_slice = es_image[:, :, 0]
         
-        diff_image = abs(ed_image - es_image)
+        diff_image = abs(ed_slice - es_slice)
         edge_image = canny(diff_image, sigma=2.0, low_threshold=0.6, high_threshold=0.96,
                            use_quantiles=True)
         
-        width = ed_image.shape[1]
-        height = ed_image.shape[0]
+        width = ed_slice.shape[1]
+        height = ed_slice.shape[0]
         image_size = (width + height) // 2
         
         lower_range = int(image_size * 0.1)    
@@ -133,10 +133,10 @@ class RegionOfInterest():
         
         if debug:
             import matplotlib.pyplot as plt
-            plt.imshow(ed_image)
+            plt.imshow(ed_slice)
             plt.show()
             plt.close()
-            plt.imshow(es_image)
+            plt.imshow(es_slice)
             plt.show()
             plt.close()
             
@@ -149,8 +149,8 @@ class RegionOfInterest():
             plt.close()
             
             fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10, 4))
-            image = ((ed_image - ed_image.min()) *
-                     (1/(ed_image.max() - ed_image.min()) * 255)).astype('uint8')
+            image = ((ed_slice - ed_slice.min()) *
+                     (1/(ed_slice.max() - ed_slice.min()) * 255)).astype('uint8')
             image = color.gray2rgb(image)
             for center_y, center_x, radius in zip(cy, cx, radii):
                 circy, circx = circle_perimeter(center_y, center_x, radius,
@@ -158,6 +158,7 @@ class RegionOfInterest():
                 image[circy, circx] = (220, 20, 20)
             
             ax.imshow(image, cmap=plt.cm.gray)
+            ax.scatter([mean_cx], [mean_cy])
             plt.show()
          
         
@@ -242,7 +243,7 @@ class Preprocess():
         min_z, max_z, pad_min_z, pad_max_z = Preprocess._get_bounds_and_padding(size[2],
                                                                                 centroid[2],
                                                                                 length[2])
-        
+        print(min_z, max_z, pad_min_z, pad_max_z)
         if ignore_z_axis:
             pad_min_z = 0
             pad_max_z = 0
@@ -258,6 +259,17 @@ class Preprocess():
         return cropped_image
     
     
+    def pad(image: sitk.Image, lower_bound: Tuple[int] = [0, 0, 0],
+            upper_bound: Tuple[int] = [0, 0, 0], constant: float = 0) -> sitk.Image:
+        pad_filter = sitk.ConstantPadImageFilter()
+
+        pad_filter.SetConstant(constant)
+        pad_filter.SetPadLowerBound(lower_bound)
+        pad_filter.SetPadUpperBound(upper_bound)
+        padded_image = pad_filter.Execute(image)
+        
+        return padded_image
+
     @staticmethod
     def normalise_intensities(image: sitk.Image) -> sitk.Image:
         # Normalise image to 0-1 range
