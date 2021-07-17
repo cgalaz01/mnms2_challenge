@@ -322,7 +322,7 @@ class Preprocess():
             centre_z = 0
         
         roi_patch = numpy_image[min_x: max_x+1, min_y: max_y+1, centre_z]
-        roi_patch = roi_patch.flatten()
+        roi_patch = roi_patch.reshape(-1, 1)
         
         cluster_labels = KMeans(n_clusters=2, random_state=0).fit_predict(roi_patch)
         cluster_1 = roi_patch[cluster_labels == 0]
