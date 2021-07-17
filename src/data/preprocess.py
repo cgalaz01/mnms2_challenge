@@ -55,7 +55,6 @@ class RegionOfInterest():
             hough_radii = np.arange(lower_range, upper_range, 3)
             hough_res = hough_circle(edge_image, hough_radii)
             
-            # Select the most prominent 3 circles
             accums, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii,
                                                        total_num_peaks=10,
                                                        normalize=False)
@@ -243,7 +242,7 @@ class Preprocess():
         min_z, max_z, pad_min_z, pad_max_z = Preprocess._get_bounds_and_padding(size[2],
                                                                                 centroid[2],
                                                                                 length[2])
-        print(min_z, max_z, pad_min_z, pad_max_z)
+
         if ignore_z_axis:
             pad_min_z = 0
             pad_max_z = 0
@@ -366,7 +365,7 @@ class Registration():
     
     @staticmethod
     def _major_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
-                         debug_output: int=0) -> Tuple[sitk.Transform, float]:
+                         debug_output: int = 0) -> Tuple[sitk.Transform, float]:
         debug_image_outputs = []
         debug_image_moving = []
         debug_image_fixed = []
@@ -454,7 +453,7 @@ class Registration():
     
     @staticmethod
     def _minor_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
-                         debug_output: int=0) -> Tuple[sitk.Transform, float]:
+                         debug_output: int = 0) -> Tuple[sitk.Transform, float]:
         debug_image_outputs = []
         debug_image_moving = []
         debug_image_fixed = []
@@ -482,7 +481,7 @@ class Registration():
         histogram_bins = 200
         learning_rate_list = [[2.0, 2.0, 1.0, 0.5, None],
                               [2.0, 1.0, 0.5, 0.25, None],
-                              [1.0, 0.5, 0.25, 0.1, None],]
+                              [1.0, 0.5, 0.25, 0.1, None]]
         sampling_rate = 1.0
         
         seed =  12453
@@ -537,15 +536,102 @@ class Registration():
         
     
     @staticmethod
-    def register(moving_image: sitk.Image, fixed_image: sitk.Image,
-                 debug_output: int=0) -> Tuple[sitk.Transform, float, Union[None, List[List[sitk.Image]]]]:        
-        major_output = Registration._major_alignment(moving_image, fixed_image, debug_output)
-        minor_output = Registration._minor_alignment(moving_image, fixed_image, debug_output)
-
-        if major_output[1] < minor_output[1]:
-            return major_output
+    def _fast_alignment(moving_image: sitk.Image, fixed_image: sitk.Image,
+                        debug_output: int = 0) -> Tuple[sitk.Transform, float]:
+        debug_image_outputs = []
+        debug_image_moving = []
+        debug_image_fixed = []
+        
+        sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(1)
+        
+        initial_transform = sitk.AffineTransform(3)
+        
+        if debug_output > 0:
+            debug_image = sitk.Resample(moving_image,
+                                        fixed_image,
+                                        initial_transform,
+                                        sitk.sitkLinear,
+                                        0.0,
+                                        moving_image.GetPixelID())
+            debug_image_moving.append(debug_image)
+            debug_image_fixed.append(fixed_image)
+        
+        
+        transform = initial_transform
+        
+        gaussian_sigma = [2, 0]
+        histogram_bins = 40
+        learning_rate_list = [[2.0, 1.0, 0.5, None],
+                              [1.0, 0.5, 0.1, None]]
+        sampling_rate = 1.0
+        seed =  12453
+        
+        for i in range(len(gaussian_sigma)):
+            if gaussian_sigma[i] > 0:
+                numpy_fixed_image = sitk.GetArrayFromImage(fixed_image)    
+                numpy_fixed_image = ndimage.gaussian_filter(numpy_fixed_image,
+                                                            sigma=(0,
+                                                                   gaussian_sigma[i],
+                                                                   gaussian_sigma[i]),
+                                                            mode='constant')
+                
+                
+                tmp_fixed_image = sitk.GetImageFromArray(numpy_fixed_image)
+                tmp_fixed_image.CopyInformation(fixed_image)
+                
+                numpy_moving_image = sitk.GetArrayFromImage(moving_image)
+                numpy_moving_image = ndimage.gaussian_filter(numpy_moving_image,
+                                                             sigma=(gaussian_sigma[i] / 2,
+                                                                    gaussian_sigma[i],
+                                                                    gaussian_sigma[i]),
+                                                             mode='constant')
+                
+                tmp_moving_image = sitk.GetImageFromArray(numpy_moving_image)
+                tmp_moving_image.CopyInformation(moving_image)
+            else:
+                tmp_fixed_image = fixed_image
+                tmp_moving_image = moving_image
+    
+            transform, metric = Registration._parallel_register(sitk.AffineTransform(transform),
+                                                                tmp_moving_image, tmp_fixed_image,
+                                                                learning_rate_list[i], histogram_bins,
+                                                                sampling_rate, seed)
+        
+            if debug_output > 0:
+                debug_image = sitk.Resample(tmp_moving_image,
+                                            tmp_fixed_image,
+                                            transform,
+                                            sitk.sitkLinear,
+                                            0.0,
+                                            tmp_moving_image.GetPixelID())
+                debug_image_moving.append(debug_image)
+                debug_image_fixed.append(tmp_fixed_image)
+    
+        
+        final_transform = transform
+        
+        debug_image_outputs = [debug_image_moving, debug_image_fixed]
+        
+        if debug_output == 1:
+            return final_transform, metric, debug_image_outputs
         else:
-            return minor_output
+            return final_transform, metric
+        
+        
+    @staticmethod
+    def register(moving_image: sitk.Image, fixed_image: sitk.Image,
+                 fast_register: bool = True, debug_output: int = 0) -> Tuple[sitk.Transform, float, Union[None, List[List[sitk.Image]]]]:        
+        if fast_register:
+            fast_output = Registration._fast_alignment(moving_image, fixed_image, debug_output)
+            return fast_output
+        else:   
+            major_output = Registration._major_alignment(moving_image, fixed_image, debug_output)
+            minor_output = Registration._minor_alignment(moving_image, fixed_image, debug_output)
+    
+            if major_output[1] < minor_output[1]:
+                return major_output
+            else:
+                return minor_output
         
     
     @staticmethod
