@@ -9,6 +9,7 @@ from skimage import color
 from skimage.feature import canny
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.draw import circle_perimeter
+from sklearn.cluster import KMeans
 
 import SimpleITK as sitk
 
@@ -35,7 +36,11 @@ class RegionOfInterest():
         ed_image = np.swapaxes(ed_image, 0, -1)
         es_image = np.swapaxes(es_image, 0, -1)
         
-        z_indexes = [0, 4]
+        if sitk_ed_image.GetSize()[-1] > 4:
+            z_indexes = [0, 2, 4]
+        else:
+            z_indexes = [0, 2]
+        
         all_cx = []
         all_cy = []
         for z in z_indexes:
@@ -258,6 +263,7 @@ class Preprocess():
         return cropped_image
     
     
+    @staticmethod
     def pad(image: sitk.Image, lower_bound: Tuple[int] = [0, 0, 0],
             upper_bound: Tuple[int] = [0, 0, 0], constant: float = 0) -> sitk.Image:
         pad_filter = sitk.ConstantPadImageFilter()
@@ -268,7 +274,8 @@ class Preprocess():
         padded_image = pad_filter.Execute(image)
         
         return padded_image
-
+    
+    
     @staticmethod
     def normalise_intensities(image: sitk.Image) -> sitk.Image:
         # Normalise image to 0-1 range
@@ -291,6 +298,56 @@ class Preprocess():
         return normalised_image
     
 
+    @staticmethod
+    def z_score_patch_normalisation(image_ed: sitk.Image, image_es: sitk.Image) -> Tuple[sitk.Image]:
+        epsilon = 1e-7
+        patch_x = 21
+        patch_y = 21
+        
+        numpy_image = sitk.GetArrayFromImage(image_ed)
+        numpy_image = np.swapaxes(numpy_image, 0, -1)
+        
+        # Assumes the heart is alligned to the centre of the image
+        centre_x = image_ed.GetSize()[0] // 2
+        centre_y = image_ed.GetSize()[1] // 2
+        min_x = centre_x - patch_x // 2
+        max_x = min_x + patch_x
+        
+        min_y = centre_y - patch_y // 2
+        max_y = min_y + patch_y
+        
+        if image_ed.GetSize()[2] > 4:
+            centre_z = 2
+        else:
+            centre_z = 0
+        
+        roi_patch = numpy_image[min_x: max_x+1, min_y: max_y+1, centre_z]
+        roi_patch = roi_patch.flatten()
+        
+        cluster_labels = KMeans(n_clusters=2, random_state=0).fit_predict(roi_patch)
+        cluster_1 = roi_patch[cluster_labels == 0]
+        cluster_2 = roi_patch[cluster_labels == 1]
+        
+        cluster_1_mean = cluster_1.mean()
+        cluster_2_mean = cluster_2.mean()
+        
+        if cluster_1_mean > cluster_1_mean:
+            mean_value = cluster_1_mean
+            standard_deviation = cluster_1.std()
+        else:
+            mean_value = cluster_2_mean
+            standard_deviation = cluster_2.std()
+            
+        normalised_image_ed = ((sitk.Cast(image_ed, sitk.sitkFloat32) - mean_value) /
+                               (standard_deviation + epsilon))
+        
+        normalised_image_es = ((sitk.Cast(image_es, sitk.sitkFloat32) - mean_value) /
+                               (standard_deviation + epsilon))
+        
+        return normalised_image_ed, normalised_image_es
+    
+    
+        
 class Registration():
     
     def __init__(self):

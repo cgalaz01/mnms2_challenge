@@ -325,11 +325,15 @@ class DataGenerator():
         
         
         # Normalise intensities
-        patient_data[FileType.sa_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_ed.value])
-        patient_data[FileType.sa_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_es.value])
+        (patient_data[FileType.sa_ed.value],
+         patient_data[FileType.sa_es.value]) = Preprocess.z_score_patch_normalisation(
+             patient_data[FileType.sa_ed.value],
+             patient_data[FileType.sa_es.value])
         
-        patient_data[FileType.la_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_ed.value])
-        patient_data[FileType.la_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_es.value])
+        (patient_data[FileType.la_ed.value],
+         patient_data[FileType.la_es.value]) = Preprocess.z_score_patch_normalisation(
+             patient_data[FileType.la_ed.value],
+             patient_data[FileType.la_es.value])
         
         return patient_data
         
