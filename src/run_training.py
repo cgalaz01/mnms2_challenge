@@ -143,13 +143,22 @@ if __name__ == '__main__':
             loss = combined_loss
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-            
-        model.compile(
-            optimizer=optimizer,
-            loss=loss,
-            metrics=[dice],
-            loss_weights={'output_sa': 75,
-                          'output_la': 1})
+        
+        strategy = tf.distribute.MirroredStrategy()
+        with strategy.scope():
+            activation = hparams[hyper_parameters.HP_ACTIVATION]
+            kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
+            dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
+            model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+                                                activation, kernel_initializer, dropout_rate)
+        
+            model.compile(
+                optimizer=optimizer,
+                loss=loss,
+                metrics=[dice],
+                loss_weights={'output_sa': 75,
+                              'output_la': 1})
+        
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
