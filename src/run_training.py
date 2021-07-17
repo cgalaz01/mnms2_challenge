@@ -34,9 +34,10 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
     model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_directory,
         save_weights_only=True,
-        monitor='val_loss',
+        monitor='loss',
         mode='min',
-        save_best_only=True)
+        save_freq='epoch',
+        save_best_only=False)
     
     log_dir = os.path.join('logs', 'fit', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
     #file_writer = tf.summary.create_file_writer(log_dir + '\\metrics')
@@ -162,7 +163,8 @@ if __name__ == '__main__':
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
-        checkpoint_path = os.path.join('tmp', 'checkpoint', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
+        checkpoint_path = os.path.join('tmp', 'checkpoint',
+                                       prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '_{epoch:04d}/'
         model.fit(x=train_gen,
                   validation_data=validation_gen,
                   epochs=epochs,
