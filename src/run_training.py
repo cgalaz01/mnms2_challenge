@@ -157,7 +157,7 @@ if __name__ == '__main__':
                 optimizer=optimizer,
                 loss=loss,
                 metrics=[dice],
-                loss_weights={'output_sa': 75,
+                loss_weights={'output_sa': 50,
                               'output_la': 1})
         
         
