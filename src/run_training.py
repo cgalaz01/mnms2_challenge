@@ -40,7 +40,8 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
         save_best_only=False)
     
     log_dir = os.path.join('logs', 'fit', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
-
+    #file_writer = tf.summary.create_file_writer(log_dir + '\\metrics')
+    #file_writer.set_as_default()
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     hparams_callback = hp.KerasCallback(log_dir, hparams)
     
@@ -119,7 +120,9 @@ if __name__ == '__main__':
         
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
-        decay_steps = 316 * 30 # 316: expected data size per epoch 
+        decay_after_epoch = 30
+        steps = 316 # Total data per epoch
+        decay_steps = steps / batch_size * decay_after_epoch
         learning_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
             decay_steps=decay_steps,
@@ -144,34 +147,34 @@ if __name__ == '__main__':
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         
-
-        activation = hparams[hyper_parameters.HP_ACTIVATION]
-        kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
-        dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
-        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
-                                            activation, kernel_initializer, dropout_rate)
-    
-        model.compile(
-            optimizer=optimizer,
-            loss=loss,
-            metrics=[dice],
-            loss_weights={'output_sa': 50,
-                          'output_la': 1})
+        strategy = tf.distribute.MirroredStrategy()
+        with strategy.scope():
+            activation = hparams[hyper_parameters.HP_ACTIVATION]
+            kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
+            dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
+            model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+                                                activation, kernel_initializer, dropout_rate)
+            
+            sa_weights = hparams[hyper_parameters.HP_SA_LAMBDA]
+            la_weights = hparams[hyper_parameters.HP_LA_LAMBDA]
+            model.compile(
+                optimizer=optimizer,
+                loss=loss,
+                metrics=[dice],
+                loss_weights={'output_sa': sa_weights,
+                              'output_la': la_weights})
         
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
         checkpoint_path = os.path.join('tmp', 'checkpoint',
-                                       prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '_{epoch:04d}/'
+                                       prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S'),
+                                       '{epoch:04d}') + '/'
         model.fit(x=train_gen,
                   validation_data=validation_gen,
                   epochs=epochs,
                   callbacks=get_callbacks(prefix, checkpoint_path, hparams),
                   verbose=1)
         
-        save_checkpoint_path = os.path.join(checkpoint_path, 'last_epoch')
-        model.save_weights(save_checkpoint_path)
-        
-        model.load_weights(checkpoint_path)
         visual_summary(model, data_gen, 'tmp/output_results')
         test_prediction(model)

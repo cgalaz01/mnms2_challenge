@@ -208,8 +208,11 @@ def combined_loss(y_true, y_pred):
     focal_loss = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,
                                                      alpha=0.25,
                                                      gamma=2.0,
-                                                     reduction=tf.keras.losses.Reduction.AUTO)
-    dice_loss = DiceLoss(reduction=tf.keras.losses.Reduction.AUTO)
+                                                     reduction=tf.keras.losses.Reduction.NONE)
+    dice_loss = DiceLoss(reduction=tf.keras.losses.Reduction.NONE)
     
-    total_loss = focal_loss(y_true, y_pred) + dice_loss(y_true, y_pred)
+    # TODO: remove hard coded batch size
+    batch_size = 4
+    total_loss = focal_loss(y_true, y_pred) + dice_loss(y_true, y_pred) * (1. / batch_size)
+    
     return total_loss

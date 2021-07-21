@@ -18,14 +18,16 @@ class HyperParameters():
         # TODO: Load from file rather than hard-coded in this file
         self.HP_FLOATING_POINT = HParamS('floating_point', hp.Discrete(['16']))
         self.HP_XLA = HParamS('xla_compiler', hp.Discrete([False]))
-        self.HP_EPOCHS = HParamS('epochs', hp.Discrete([300]))
-        self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([1]))
+        self.HP_EPOCHS = HParamS('epochs', hp.Discrete([1000]))
+        self.HP_BATCH_SIZE = HParamS('batch_size', hp.Discrete([4]))
         self.HP_LEANRING_RATE = HParamS('learning_rate', hp.Discrete([0.00005]))
         self.HP_OPTIMISER = HParamS('optimiser', hp.Discrete(['adam']))
         self.HP_LOSS = HParamS('loss', hp.Discrete(['combined']))
         self.HP_ACTIVATION = HParamS('activation', hp.Discrete(['selu']))
         self.HP_KERNEL_INITIALIZER = HParamS('kernel_initializer', hp.Discrete(['lecun_normal']))
         self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
+        self.HP_SA_LAMBDA = HParamS('sa_lamdda', hp.Discrete([60]))
+        self.HP_LA_LAMBDA = HParamS('la_lamdda', hp.Discrete([1]))
         
         self.parameter_dict = {}
         self.parameter_dict[self.HP_FLOATING_POINT] = self.HP_FLOATING_POINT.domain.values
@@ -38,6 +40,9 @@ class HyperParameters():
         self.parameter_dict[self.HP_ACTIVATION] = self.HP_ACTIVATION.domain.values
         self.parameter_dict[self.HP_KERNEL_INITIALIZER] = self.HP_KERNEL_INITIALIZER.domain.values
         self.parameter_dict[self.HP_DROPOUT] = self.HP_DROPOUT.domain.values
+        self.parameter_dict[self.HP_SA_LAMBDA] = self.HP_SA_LAMBDA.domain.values
+        self.parameter_dict[self.HP_LA_LAMBDA] = self.HP_LA_LAMBDA.domain.values
+        
         
         if search_type == 'grid':
             self.parameter_space = ParameterGrid(self.parameter_dict)
