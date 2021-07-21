@@ -40,8 +40,7 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
         save_best_only=False)
     
     log_dir = os.path.join('logs', 'fit', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
-    #file_writer = tf.summary.create_file_writer(log_dir + '\\metrics')
-    #file_writer.set_as_default()
+
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     hparams_callback = hp.KerasCallback(log_dir, hparams)
     
@@ -145,20 +144,19 @@ if __name__ == '__main__':
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         
-        strategy = tf.distribute.MirroredStrategy()
-        with strategy.scope():
-            activation = hparams[hyper_parameters.HP_ACTIVATION]
-            kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
-            dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
-            model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
-                                                activation, kernel_initializer, dropout_rate)
-        
-            model.compile(
-                optimizer=optimizer,
-                loss=loss,
-                metrics=[dice],
-                loss_weights={'output_sa': 50,
-                              'output_la': 1})
+
+        activation = hparams[hyper_parameters.HP_ACTIVATION]
+        kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
+        dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
+        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+                                            activation, kernel_initializer, dropout_rate)
+    
+        model.compile(
+            optimizer=optimizer,
+            loss=loss,
+            metrics=[dice],
+            loss_weights={'output_sa': 50,
+                          'output_la': 1})
         
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
