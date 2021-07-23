@@ -3,7 +3,7 @@ from tensorflow.keras import backend as K
 
 
 @tf.autograph.experimental.do_not_convert
-def dice(y_true, y_pred):
+def soft_dice(y_true, y_pred):
     epsilon = 1e-6
     
     y_true = tf.cast(y_true, dtype=tf.float32)

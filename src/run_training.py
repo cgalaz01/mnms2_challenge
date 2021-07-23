@@ -20,7 +20,7 @@ from configuration import HyperParameters
 from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
 from tf.losses.loss import TverskyLoss, combined_loss
-from tf.metrics.metrics import dice
+from tf.metrics.metrics import soft_dice
 from run_test_inference import test_prediction
 
 
@@ -40,8 +40,7 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
         save_best_only=False)
     
     log_dir = os.path.join('logs', 'fit', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
-    #file_writer = tf.summary.create_file_writer(log_dir + '\\metrics')
-    #file_writer.set_as_default()
+    
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     hparams_callback = hp.KerasCallback(log_dir, hparams)
     
@@ -160,7 +159,7 @@ if __name__ == '__main__':
             model.compile(
                 optimizer=optimizer,
                 loss=loss,
-                metrics=[dice],
+                metrics=[soft_dice],
                 loss_weights={'output_sa': sa_weights,
                               'output_la': la_weights})
         

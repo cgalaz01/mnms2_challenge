@@ -149,7 +149,7 @@ class TverskyLoss(tf.keras.losses.Loss):
     
     
     
-class DiceLoss(tf.keras.losses.Loss):
+class SoftDiceLoss(tf.keras.losses.Loss):
     """Implements the Dice loss for classification problems.
     """
 
@@ -169,7 +169,7 @@ class DiceLoss(tf.keras.losses.Loss):
                 more details.
           name: Optional name for the op.
         """
-        super(DiceLoss, self).__init__(reduction=reduction, name=name)
+        super(SoftDiceLoss, self).__init__(reduction=reduction, name=name)
   
   
     def call(self, y_true, y_pred):
@@ -197,7 +197,7 @@ class DiceLoss(tf.keras.losses.Loss):
   
   
     def get_config(self):
-        base_config = super(DiceLoss, self).get_config()
+        base_config = super(SoftDiceLoss, self).get_config()
         return base_config
     
     
@@ -209,7 +209,7 @@ def combined_loss(y_true, y_pred):
                                                      alpha=0.25,
                                                      gamma=2.0,
                                                      reduction=tf.keras.losses.Reduction.NONE)
-    dice_loss = DiceLoss(reduction=tf.keras.losses.Reduction.NONE)
+    dice_loss = SoftDiceLoss(reduction=tf.keras.losses.Reduction.NONE)
     
     # TODO: remove hard coded batch size
     batch_size = 4

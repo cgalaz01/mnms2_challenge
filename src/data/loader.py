@@ -70,9 +70,6 @@ class DataGenerator():
         # (It does not have ground truth - validated on submission only)
         self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
         
-        #self.train_list = self.get_patient_list(self.train_directory)
-        #self.train_list = self.randomise_list(self.train_list, seed=4594, inplace=True)
-        #self.train_list = self.randomise_list_cached(self.train_list, self._cached_data_shuffle)
         self.train_list = self.get_cached_patient_list(self.train_directory, self._cached_data_shuffle)
         self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=158/160)
         self.test_list = self.get_patient_list(self.testing_directory)
@@ -505,6 +502,7 @@ class DataGenerator():
             patient_data[OutputAffine.la_affine.value] = la_affine
         
         return patient_data
+    
     
     @staticmethod
     def to_structure(patient_data: Dict[str, sitk.Image], has_affine_matrix: bool,
