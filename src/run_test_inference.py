@@ -82,7 +82,8 @@ def test_prediction(model: tf.keras.Model) -> None:
         output_sa = sitk.GetImageFromArray(output_sa)
         
         output_sa.CopyInformation(post_sitk[0]['input_sa'])
-        output_sa = sitk.Resample(output_sa, pre_sitk[0]['input_sa'])
+        output_sa = sitk.Resample(output_sa, pre_sitk[0]['input_sa'],
+                                  interpolator=sitk.sitkNearestNeighbor)
         
         output_la = (prediction_dict['output_la'][0] >= threshold).astype(np.uint8)[..., 0]
         output_la = select_largest_region(output_la)
@@ -92,7 +93,8 @@ def test_prediction(model: tf.keras.Model) -> None:
         output_la = sitk.GetImageFromArray(output_la)
         
         output_la.CopyInformation(post_sitk[0]['input_la'])
-        output_la = sitk.Resample(output_la, pre_sitk[0]['input_la'])
+        output_la = sitk.Resample(output_la, pre_sitk[0]['input_la'],
+                                  interpolator=sitk.sitkNearestNeighbor)
         
         patient_id = os.path.basename(os.path.normpath(patient_directory))
         save_predictions(output_sa, output_la, patient_id, phase)
