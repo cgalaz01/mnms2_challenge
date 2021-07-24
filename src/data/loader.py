@@ -56,7 +56,7 @@ class DataGenerator():
                             77, 37, 9, 124, 157, 154, 21]
     
     def __init__(self, floating_precision: str = '32',
-                 memory_cache: bool = True) -> None:
+                 memory_cache: bool = True, disk_cache: bool = True) -> None:
         file_path = Path(__file__).parent.absolute()
         expected_data_directory = os.path.join('..', '..', 'data')
         
@@ -93,6 +93,7 @@ class DataGenerator():
         
         self.affine_shape = (4, 4)
         
+        self.disk_cache = disk_cache
         self.memory_cache = memory_cache
         self.data_in_memory = {}
         
@@ -373,6 +374,9 @@ class DataGenerator():
         
     def save_cache(self, patient_directory: Union[str, Path],
                     patient_data: Dict[str, sitk.Image]) -> None:
+        if not self.disk_cache:
+            return
+        
         patient_cache_directory = self.get_cache_directory(patient_directory)
         os.makedirs(patient_cache_directory, exist_ok=True)
         
