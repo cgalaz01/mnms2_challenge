@@ -8,15 +8,13 @@ from skimage.morphology import label
 import SimpleITK as sitk
 
 from data import TensorFlowDataGenerator
-from tf.losses.loss import FocalLoss
 from tf.layers.transformer import TargetAffineLayer, TargetShapePad, TargetShapeCrop
-from tf.metrics.metrics import dice
+from tf.metrics.metrics import soft_dice
 
 
 def load_model(modelpath) -> tf.keras.Model:
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model(modelpath, custom_objects={'dice': dice,
-                                                                  'FocalLoss': FocalLoss,
+    model = tf.keras.models.load_model(modelpath, custom_objects={'soft_dice': soft_dice,
                                                                   'TargetAffineLayer': TargetAffineLayer,
                                                                   'TargetShapePad': TargetShapePad,
                                                                   'TargetShapeCrop': TargetShapeCrop})
