@@ -146,22 +146,21 @@ if __name__ == '__main__':
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
             loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         
-        strategy = tf.distribute.MirroredStrategy()
-        with strategy.scope():
-            activation = hparams[hyper_parameters.HP_ACTIVATION]
-            kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
-            dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
-            model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
-                                                activation, kernel_initializer, dropout_rate)
-            
-            sa_weights = hparams[hyper_parameters.HP_SA_LAMBDA]
-            la_weights = hparams[hyper_parameters.HP_LA_LAMBDA]
-            model.compile(
-                optimizer=optimizer,
-                loss=loss,
-                metrics=[soft_dice],
-                loss_weights={'output_sa': sa_weights,
-                              'output_la': la_weights})
+        
+        activation = hparams[hyper_parameters.HP_ACTIVATION]
+        kernel_initializer = hparams[hyper_parameters.HP_KERNEL_INITIALIZER]
+        dropout_rate = hparams[hyper_parameters.HP_DROPOUT]
+        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+                                            activation, kernel_initializer, dropout_rate)
+        
+        sa_weights = hparams[hyper_parameters.HP_SA_LAMBDA]
+        la_weights = hparams[hyper_parameters.HP_LA_LAMBDA]
+        model.compile(
+            optimizer=optimizer,
+            loss=loss,
+            metrics=[soft_dice],
+            loss_weights={'output_sa': sa_weights,
+                          'output_la': la_weights})
         
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
