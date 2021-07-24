@@ -276,7 +276,7 @@ class DataAugmentation():
         numpy_image = sitk.GetArrayFromImage(image)
         numpy_gt = sitk.GetArrayViewFromImage(gt_image)
         
-        dropout_value = 0 #numpy_image.min()
+        dropout_value = numpy_image.min()
         
         for slice_index in range(numpy_image.shape[0]):
             y, x = np.where(numpy_gt[slice_index, :, :] == 3)
