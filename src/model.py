@@ -131,17 +131,7 @@ class model:
         '''
 
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-        
-        run_on_cpu = True
-        device = 'cpu:0' if run_on_cpu else 'gpu:0'
-        #with tf.device(device):
         self.test_prediction(input_folder, output_folder)
 
-
-if __name__ == '__main__':
-    m = model()
-    input_folder = os.path.join('..', 'data', 'validation')
-    output_folder = os.path.join('..', 'test', 'validation')
-    m.predict(input_folder, output_folder)
     
     
