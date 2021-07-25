@@ -9,6 +9,7 @@ data/validation/
 data_cache*/
 data_cache*.zip
 Submission
+src/model_weights
 
 # Tmp files
 logs/

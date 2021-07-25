@@ -56,7 +56,8 @@ class DataGenerator():
                             77, 37, 9, 124, 157, 154, 21]
     
     def __init__(self, floating_precision: str = '32',
-                 memory_cache: bool = True, disk_cache: bool = True) -> None:
+                 memory_cache: bool = True, disk_cache: bool = True,
+                 test_directory: Union[str, Path, None] = None) -> None:
         file_path = Path(__file__).parent.absolute()
         expected_data_directory = os.path.join('..', '..', 'data')
         
@@ -68,10 +69,14 @@ class DataGenerator():
         # For the purposes of model development, the 'validation' set is treated
         # as the test set
         # (It does not have ground truth - validated on submission only)
-        self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
+        if test_directory is None:
+            self.testing_directory = Path(os.path.join(self.data_directory, 'validation'))
+        else:
+            self.testing_directory = test_directory
+
         
         self.train_list = self.get_cached_patient_list(self.train_directory, self._cached_data_shuffle)
-        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=158/160)
+        self.train_list, self.validation_list = self.split_list(self.train_list, split_fraction=150/160)
         self.test_list = self.get_patient_list(self.testing_directory)
         
         self.target_spacing = (1.25, 1.25, 10)
@@ -326,12 +331,14 @@ class DataGenerator():
         (patient_data[FileType.sa_ed.value],
          patient_data[FileType.sa_es.value]) = Preprocess.z_score_patch_normalisation(
              patient_data[FileType.sa_ed.value],
-             patient_data[FileType.sa_es.value])
+             patient_data[FileType.sa_es.value],
+             'sa')
         
         (patient_data[FileType.la_ed.value],
          patient_data[FileType.la_es.value]) = Preprocess.z_score_patch_normalisation(
              patient_data[FileType.la_ed.value],
-             patient_data[FileType.la_es.value])
+             patient_data[FileType.la_es.value],
+             'la')
         
         return patient_data
         

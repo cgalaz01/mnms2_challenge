@@ -75,8 +75,13 @@ class TensorFlowDataGenerator():
 
     @staticmethod
     def get_affine_generators(batch_size: int, max_buffer_size: Union[int, None]=None,
-                              floating_precision: str = '32') -> Tuple[tf.data.Dataset]:
-        dg = DataGenerator(floating_precision)
+                              floating_precision: str = '32', memory_cache: bool = True,
+                              disk_cache: bool = True,
+                              test_directory: Union[str, None] = None) -> Tuple[tf.data.Dataset]:
+        dg = DataGenerator(floating_precision=floating_precision,
+                           memory_cache=memory_cache,
+                           disk_cache=disk_cache,
+                           test_directory=test_directory)
         
         output_shapes = ({'input_sa': tf.TensorShape(dg.sa_shape),
                           'input_la': tf.TensorShape(dg.la_shape),

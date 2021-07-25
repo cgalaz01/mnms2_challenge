@@ -299,10 +299,15 @@ class Preprocess():
     
 
     @staticmethod
-    def z_score_patch_normalisation(image_ed: sitk.Image, image_es: sitk.Image) -> Tuple[sitk.Image]:
+    def z_score_patch_normalisation(image_ed: sitk.Image, image_es: sitk.Image,
+                                    image_type: str) -> Tuple[sitk.Image]:
         epsilon = 1e-7
-        patch_x = 21
-        patch_y = 21
+        if image_type == 'sa':    
+            patch_x = 21
+            patch_y = 21
+        else:
+            patch_x = 31
+            patch_y = 31
         
         numpy_image = sitk.GetArrayFromImage(image_ed)
         numpy_image = np.swapaxes(numpy_image, 0, -1)
@@ -323,15 +328,18 @@ class Preprocess():
         
         roi_patch = numpy_image[min_x: max_x+1, min_y: max_y+1, centre_z]
         roi_patch = roi_patch.reshape(-1, 1)
+        roi_patch = np.sort(roi_patch)
         
-        cluster_labels = KMeans(n_clusters=2, random_state=0).fit_predict(roi_patch)
+        centroids = np.asarray([[0], [len(roi_patch) - 1]])
+        cluster_labels = KMeans(n_clusters=2, init=centroids,
+                                n_init=1, random_state=0).fit_predict(roi_patch)
         cluster_1 = roi_patch[cluster_labels == 0]
         cluster_2 = roi_patch[cluster_labels == 1]
         
         cluster_1_mean = cluster_1.mean()
         cluster_2_mean = cluster_2.mean()
         
-        if cluster_1_mean > cluster_1_mean:
+        if cluster_1_mean > cluster_2_mean:
             mean_value = cluster_1_mean
             standard_deviation = cluster_1.std()
         else:

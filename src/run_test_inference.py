@@ -56,7 +56,8 @@ def select_largest_region(label_image: np.ndarray) -> np.ndarray:
         label_image[multi_label_image != largest_index_label] = 0
         
     return label_image
-        
+ 
+       
 def test_prediction(model: tf.keras.Model) -> None:    
     (train_gen, validation_gen,
      test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size=1,
