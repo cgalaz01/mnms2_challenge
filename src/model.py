@@ -1,4 +1,6 @@
 import os
+import argparse
+
 
 from typing import Union
 from pathlib import Path
@@ -6,15 +8,17 @@ from pathlib import Path
 import numpy as np
 
 from skimage.morphology import label
+from scipy import ndimage
 
 import tensorflow as tf
 
 import SimpleITK as sitk
 
 
-from data import TensorFlowDataGenerator, DataGenerator
+from data import TensorFlowDataGenerator
 from tf.models import multi_stage_model
-
+from tf.losses.loss import combined_loss
+from tf.metrics.metrics import soft_dice
 
 class model:
     
@@ -22,16 +26,36 @@ class model:
         '''
         IMPORTANT: Initializes the model wrapper WITHOUT PARAMETERS, it will be called as model()
         '''
-        self.model_weights_path = os.path.join('model_weights', 'multi_stage_model')
+        self.model_weights_path = os.path.join('model_weights', 'multi_stage_model') + '/'
 
 
-    def load_model(self, data_gen: DataGenerator) -> tf.keras.Model:
+    def load_model(self) -> tf.keras.Model:
+        tf.keras.backend.clear_session()
         activation = 'selu'
         kernel_initializer = 'lecun_normal'
         dropout_rate = 0.
         
-        model = multi_stage_model.get_model(data_gen.sa_shape, data_gen.la_shape, data_gen.n_classes,
+        model = multi_stage_model.get_model((192, 192, 17), (192, 192, 1), 1,
                                             activation, kernel_initializer, dropout_rate)
+        
+        learning_rate = 0.0005
+        decay_after_epoch = 30
+        steps = 316 # Total data per epoch
+        decay_steps = steps / 1 * decay_after_epoch
+        learning_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=learning_rate,
+            decay_steps=decay_steps,
+            decay_rate=0.9,
+            staircase=True)
+        
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_schedule)
+        
+        model.compile(
+            optimizer=optimizer,
+            loss=combined_loss,
+            metrics=[soft_dice],
+            loss_weights={'output_sa': 75,
+                          'output_la': 1})
         
         # Load weights
         file_path = Path(__file__).parent.absolute()
@@ -45,11 +69,11 @@ class model:
         multi_label_image, label_num = label(label_image, return_num=True,
                                              background=0, connectivity=2)
     
-        if label_num > 1:
+        if label_num >= 1:
             # Select and keep only the largest label
             largest_label_size = 0
             largest_index_label = 0
-            for i in range(1, label_num):
+            for i in range(1, label_num + 1):
                 label_size = (multi_label_image == i).sum()
                 if label_size > largest_label_size:
                     largest_label_size = label_size
@@ -78,7 +102,7 @@ class model:
         
         
     def test_prediction(self, input_directory: Union[str, Path],
-                        output_directory: Union[str, Path]) -> None:    
+                        output_directory: Union[str, Path]) -> None: 
         (train_gen, validation_gen,
          test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size=1,
                                                                              max_buffer_size=None,
@@ -87,9 +111,9 @@ class model:
                                                                              disk_cache=False,
                                                                              test_directory=input_directory)
         
-        model = self.load_model(data_gen)
-                                                                             
-        threshold = 0
+        model = self.load_model()
+        
+        threshold = -1
         
         for data, pre_sitk, post_sitk, patient_directory, phase in data_gen.test_affine_generator_inference():
             # Add batch dimension to each of the input values
@@ -108,6 +132,11 @@ class model:
             output_sa.CopyInformation(post_sitk[0]['input_sa'])
             output_sa = sitk.Resample(output_sa, pre_sitk[0]['input_sa'],
                                       interpolator=sitk.sitkNearestNeighbor)
+            output_sa_tmp = sitk.GetArrayFromImage(output_sa)
+            output_sa_tmp = ndimage.median_filter(output_sa_tmp, size=(1, 5, 5))
+            output_sa_tmp = sitk.GetImageFromArray(output_sa_tmp)
+            output_sa_tmp.CopyInformation(pre_sitk[0]['input_sa'])
+            output_sa = output_sa_tmp
             
             output_la = (prediction_dict['output_la'][0] >= threshold).astype(np.uint8)[..., 0]
             output_la = self.select_largest_region(output_la)
@@ -119,10 +148,15 @@ class model:
             output_la.CopyInformation(post_sitk[0]['input_la'])
             output_la = sitk.Resample(output_la, pre_sitk[0]['input_la'],
                                       interpolator=sitk.sitkNearestNeighbor)
+            output_la_tmp = sitk.GetArrayFromImage(output_la)
+            output_la_tmp = ndimage.median_filter(output_la_tmp, size=(1, 5, 5))
+            output_la_tmp = sitk.GetImageFromArray(output_la_tmp)
+            output_la_tmp.CopyInformation(pre_sitk[0]['input_la'])
+            output_la = output_la_tmp
             
             patient_id = os.path.basename(os.path.normpath(patient_directory))
             self.save_predictions(output_sa, output_la, patient_id, phase, output_directory)
-            
+
 
     def predict(self, input_folder, output_folder):
 
@@ -133,5 +167,19 @@ class model:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
         self.test_prediction(input_folder, output_folder)
 
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Tempera Model Inference')
+    parser.add_argument('--input_path', type=str)
+    parser.add_argument('--output_path', type=str)
+
+    return parser.parse_args()
     
+
+if __name__ == '__main__':
+    m = model()
+    parsed_args = parse_arguments()
+    input_folder = Path(parsed_args.input_path)
+    output_folder = Path(parsed_args.output_path)
+    m.predict(input_folder, output_folder)
     

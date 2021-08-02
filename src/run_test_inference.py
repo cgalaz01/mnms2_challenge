@@ -42,11 +42,11 @@ def select_largest_region(label_image: np.ndarray) -> np.ndarray:
     multi_label_image, label_num = label(label_image, return_num=True,
                                          background=0, connectivity=2)
 
-    if label_num > 1:
+    if label_num >= 1:
         # Select and keep only the largest label
         largest_label_size = 0
         largest_index_label = 0
-        for i in range(1, label_num):
+        for i in range(1, label_num + 1):
             label_size = (multi_label_image == i).sum()
             if label_size > largest_label_size:
                 largest_label_size = label_size
