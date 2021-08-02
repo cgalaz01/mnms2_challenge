@@ -105,6 +105,10 @@ class DataGenerator():
         self.augmentation = DataAugmentation(seed=1235)
 
 
+        # tmp
+        self.sa_dist = []
+        self.la_dist = []
+
     @staticmethod
     def get_patient_list(root_directory: Union[str, Path]) -> List[Path]:
         files = glob(os.path.join(root_directory, "**"))
@@ -552,12 +556,12 @@ class DataGenerator():
             patient_data = self.load_cache(patient_directory, has_gt)
             self.save_memory(patient_directory, patient_data)
         else:
-            patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
-            patient_data = DataGenerator.preprocess_patient_data(patient_data,
-                                                                 self.target_spacing,
-                                                                 self.target_size,
-                                                                 has_gt,
-                                                                 affine_matrix)
+            patient_data = self.load_patient_data(patient_directory, has_gt)
+            patient_data = self.preprocess_patient_data(patient_data,
+                                                        self.target_spacing,
+                                                        self.target_size,
+                                                        has_gt,
+                                                        affine_matrix)
             self.save_cache(patient_directory, patient_data)
             self.save_memory(patient_directory, patient_data)
                 
@@ -578,13 +582,13 @@ class DataGenerator():
             pre_patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
             post_patient_data = self.load_cache(patient_directory, has_gt)
         else:
-            pre_patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
-            post_patient_data = DataGenerator.load_patient_data(patient_directory, has_gt)
-            post_patient_data = DataGenerator.preprocess_patient_data(post_patient_data,
-                                                                      self.target_spacing,
-                                                                      self.target_size,
-                                                                      has_gt,
-                                                                      False)
+            pre_patient_data = self.load_patient_data(patient_directory, has_gt)
+            post_patient_data = self.load_patient_data(patient_directory, has_gt)
+            post_patient_data = self.preprocess_patient_data(post_patient_data,
+                                                             self.target_spacing,
+                                                             self.target_size,
+                                                             has_gt,
+                                                             False)
             self.save_cache(patient_directory, pre_patient_data)
             
         
@@ -592,50 +596,9 @@ class DataGenerator():
         post_output_data = self.to_structure(post_patient_data, False, has_gt)
         
         return pre_output_data, post_output_data
-        
+    
         
     def train_generator(self, augment: bool = True, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
-        for patient_directory in self.train_list:
-            if verbose > 0:
-                print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=False, augment=augment)
-            
-            yield patient_data[0]   # End diastolic
-            yield patient_data[1]   # End systolic
-        
-    
-    def validation_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
-        for patient_directory in self.validation_list:
-            if verbose > 0:
-                print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=False)
-            
-            yield patient_data[0]
-            yield patient_data[1]
-            
-    
-    def test_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
-        for patient_directory in self.test_list:
-            if verbose > 0:
-                print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=False)
-            
-            yield patient_data[0]
-            yield patient_data[1]
-            
-    
-    def test_generator_inference(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
-        for patient_directory in self.test_list:
-            if verbose > 0:
-                print('Generating patient: ', patient_directory)
-            patient_data = self.generator(patient_directory, affine_matrix=False, has_gt=False)
-            pre_patient_data, post_patient_data = self.sitk_generator(patient_directory, has_gt=False)
-            
-            yield patient_data[0], pre_patient_data[0], post_patient_data[0], patient_directory, 'ed'
-            yield patient_data[1], pre_patient_data[1], post_patient_data[1], patient_directory, 'es'
-        
-        
-    def train_affine_generator(self, augment: bool = True, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.train_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
@@ -645,7 +608,7 @@ class DataGenerator():
             yield patient_data[1]   # End systolic
         
     
-    def validation_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
+    def validation_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.validation_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
@@ -655,7 +618,7 @@ class DataGenerator():
             yield patient_data[1]
             
     
-    def test_affine_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
+    def test_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
@@ -665,7 +628,7 @@ class DataGenerator():
             yield patient_data[1]
 
 
-    def test_affine_generator_inference(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
+    def test_generator_inference(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
             if verbose > 0:
                 print('Generating patient: ', patient_directory)
