@@ -120,7 +120,7 @@ if __name__ == '__main__':
         
         learning_rate = hparams[hyper_parameters.HP_LEANRING_RATE]
         decay_after_epoch = 30
-        steps = 316 # Total data per epoch
+        steps = 300 # Total data per epoch
         decay_steps = steps / batch_size * decay_after_epoch
         learning_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,

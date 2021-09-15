@@ -26,7 +26,7 @@ class HyperParameters():
         self.HP_ACTIVATION = HParamS('activation', hp.Discrete(['selu']))
         self.HP_KERNEL_INITIALIZER = HParamS('kernel_initializer', hp.Discrete(['lecun_normal']))
         self.HP_DROPOUT = HParamS('drop_out', hp.Discrete([0.0]))
-        self.HP_SA_LAMBDA = HParamS('sa_lamdda', hp.Discrete([60]))
+        self.HP_SA_LAMBDA = HParamS('sa_lamdda', hp.Discrete([75]))
         self.HP_LA_LAMBDA = HParamS('la_lamdda', hp.Discrete([1]))
         
         self.parameter_dict = {}

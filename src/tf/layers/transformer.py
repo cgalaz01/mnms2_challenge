@@ -50,12 +50,7 @@ class TargetShapePad(Layer):
     
     def __init__(self, image_shape, target_shape, **kwargs):
         super(self.__class__, self).__init__(**kwargs)
-        
-        # TODO
-        #zero = tf.constant(0, dtype=tf.int32)
-        #self.paddings = [(zero, tf.math.maximum(tf.cast(target_shape[0] - image_shape[0], tf.int32), zero)),
-        #                 (zero, tf.math.maximum(tf.cast(target_shape[1] - image_shape[1], tf.int32), zero)),
-        #                 (zero, zero)]
+
         self.paddings = [(0, 0),
                          (0, 0),
                          (0, 0)]
@@ -79,11 +74,6 @@ class TargetShapeCrop(Layer):
     def __init__(self, image_shape, target_shape, **kwargs):
         super(self.__class__, self).__init__(**kwargs)
         
-        # TODO
-        #zero = tf.constant(0, dtype=tf.int32)
-        #self.cropping = [(zero, tf.math.maximum(tf.cast(image_shape[0] - target_shape[0], tf.int32), zero)),
-        #                 (zero, tf.math.maximum(tf.cast(image_shape[1] - target_shape[1], tf.int32), zero)),
-        #                 (zero, tf.math.maximum(tf.cast(image_shape[2] - target_shape[2], tf.int32), zero))]
         self.cropping = [(0, 0),
                          (0, 0),
                          (0, 16)]
