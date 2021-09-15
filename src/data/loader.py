@@ -105,10 +105,6 @@ class DataGenerator():
         self.augmentation = DataAugmentation(seed=1235)
 
 
-        # tmp
-        self.sa_dist = []
-        self.la_dist = []
-
     @staticmethod
     def get_patient_list(root_directory: Union[str, Path]) -> List[Path]:
         files = glob(os.path.join(root_directory, "**"))
@@ -332,17 +328,11 @@ class DataGenerator():
         
         
         # Normalise intensities
-        (patient_data[FileType.sa_ed.value],
-         patient_data[FileType.sa_es.value]) = Preprocess.z_score_patch_normalisation(
-             patient_data[FileType.sa_ed.value],
-             patient_data[FileType.sa_es.value],
-             'sa')
+        patient_data[FileType.sa_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_ed.value])
+        patient_data[FileType.sa_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.sa_es.value])
         
-        (patient_data[FileType.la_ed.value],
-         patient_data[FileType.la_es.value]) = Preprocess.z_score_patch_normalisation(
-             patient_data[FileType.la_ed.value],
-             patient_data[FileType.la_es.value],
-             'la')
+        patient_data[FileType.la_ed.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_ed.value])
+        patient_data[FileType.la_es.value] = Preprocess.z_score_normalisation(patient_data[FileType.la_es.value])
         
         return patient_data
         
@@ -484,14 +474,6 @@ class DataGenerator():
             # Swap axes so ordering is x, y, z rather than z, y, x as stored
             # in sitk
             numpy_image = np.swapaxes(numpy_image, 0, -1)
-            
-            # Generate one-hot encoding of the labels
-            #if 'gt' in key:
-            #    numpy_image = numpy_image.astype(np.uint8)
-            #    if 'LA' in key: # use the 'depth' axis as the channel for the label
-            #        numpy_image = np.squeeze(numpy_image, axis=-1)
-            #    n_values = self.n_classes
-            #    numpy_image = np.eye(n_values)[numpy_image]
             
             # Select right-ventricle labels only
             if 'gt' in key:

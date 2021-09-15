@@ -70,18 +70,22 @@ class RegionOfInterest():
             if debug:
                 import matplotlib.pyplot as plt
                 
-                plt.imshow(ed_slice)
+                plt.imshow(ed_slice, cmap='gray')
+                plt.axis('off')
                 plt.show()
                 plt.close()
-                plt.imshow(es_slice)
+                plt.imshow(es_slice, cmap='gray')
+                plt.axis('off')
                 plt.show()
                 plt.close()
                 
-                plt.imshow(diff_image)
+                plt.imshow(diff_image, cmap='magma')
+                plt.axis('off')
                 plt.show()
                 plt.close()
                  
-                plt.imshow(edge_image)
+                plt.imshow(edge_image, cmap='cubehelix')
+                plt.axis('off')
                 plt.show()
                 plt.close()
                 
@@ -94,11 +98,13 @@ class RegionOfInterest():
                 for center_y, center_x, radius in zip(cy, cx, radii):
                     circy, circx = circle_perimeter(center_y, center_x, radius,
                                                     shape=image.shape)
-                    image[circy, circx] = (220, 20, 20)
+                    image[circy, circx] = (220, 60, 40)
                 
                 ax.imshow(image, cmap=plt.cm.gray)
-                ax.scatter([mean_cx], [mean_cy])
+                ax.scatter([mean_cx], [mean_cy], marker='x')
+                plt.axis('off')
                 plt.show()
+                plt.close()
             
         mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(all_cx, all_cy)
         
@@ -107,7 +113,7 @@ class RegionOfInterest():
     
     @staticmethod
     def detect_roi_la(sitk_ed_image: sitk.Image, sitk_es_image: sitk.Image,
-                      debug: bool = False) -> Tuple[int]:
+                      debug: bool = True) -> Tuple[int]:
         ed_image = sitk.GetArrayFromImage(sitk_ed_image)
         es_image = sitk.GetArrayFromImage(sitk_es_image)
         ed_image = np.swapaxes(ed_image, 0, -1)
@@ -137,33 +143,43 @@ class RegionOfInterest():
         
         if debug:
             import matplotlib.pyplot as plt
-            plt.imshow(ed_slice)
+            
+            plt.imshow(ed_slice, cmap='gray')
+            plt.axis('off')
             plt.show()
             plt.close()
-            plt.imshow(es_slice)
+            plt.imshow(es_slice, cmap='gray')
+            plt.axis('off')
             plt.show()
             plt.close()
             
-            plt.imshow(diff_image)
+            plt.imshow(diff_image, cmap='magma')
+            plt.axis('off')
+            plt.show()
+            plt.close()
+             
+            plt.imshow(edge_image, cmap='cubehelix')
+            plt.axis('off')
             plt.show()
             plt.close()
             
-            plt.imshow(edge_image)
-            plt.show()
-            plt.close()
+            mean_cx, mean_cy = RegionOfInterest._mean_roi_centroid(cx, cy)
             
             fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10, 4))
+            ed_slice[ed_slice > 350] = 350
             image = ((ed_slice - ed_slice.min()) *
-                     (1/(ed_slice.max() - ed_slice.min()) * 255)).astype('uint8')
+                     (1 / (ed_slice.max() - ed_slice.min()) * 255)).astype('uint8')
             image = color.gray2rgb(image)
             for center_y, center_x, radius in zip(cy, cx, radii):
                 circy, circx = circle_perimeter(center_y, center_x, radius,
                                                 shape=image.shape)
-                image[circy, circx] = (220, 20, 20)
+                image[circy, circx] = (220, 60, 40)
             
             ax.imshow(image, cmap=plt.cm.gray)
-            ax.scatter([mean_cx], [mean_cy])
+            ax.scatter([mean_cx], [mean_cy], marker='x')
+            plt.axis('off')
             plt.show()
+            plt.close()
          
         
         return mean_cx, mean_cy
@@ -330,7 +346,8 @@ class Preprocess():
         roi_patch = roi_patch.reshape(-1, 1)
         roi_patch = np.sort(roi_patch)
         
-        centroids = np.asarray([[0], [len(roi_patch) - 1]])
+        centroid_index = 10
+        centroids = np.asarray([[centroid_index], [len(roi_patch) - 1 - centroid_index]])
         cluster_labels = KMeans(n_clusters=2, init=centroids,
                                 n_init=1, random_state=0).fit_predict(roi_patch)
         cluster_1 = roi_patch[cluster_labels == 0]
@@ -346,6 +363,7 @@ class Preprocess():
             mean_value = cluster_2_mean
             standard_deviation = cluster_2.std()
             
+        mean_value += 50
         normalised_image_ed = ((sitk.Cast(image_ed, sitk.sitkFloat32) - mean_value) /
                                (standard_deviation + epsilon))
         
