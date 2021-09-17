@@ -106,9 +106,9 @@ if __name__ == '__main__':
     
         batch_size = hparams[hyper_parameters.HP_BATCH_SIZE]
         (train_gen, validation_gen,
-         test_gen, data_gen) = TensorFlowDataGenerator.get_affine_generators(batch_size,
-                                                                             max_buffer_size=None,
-                                                                             floating_precision=fp)
+         test_gen, data_gen) = TensorFlowDataGenerator.get_generators(batch_size,
+                                                                      max_buffer_size=None,
+                                                                      floating_precision=fp)
         
                                                  
         activation = hparams[hyper_parameters.HP_ACTIVATION]
