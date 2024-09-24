@@ -6,6 +6,7 @@ __pycache__/
 # Data
 data/training/
 data/validation/
+data/testing/
 data_cache*/
 data_cache*.zip
 Submission
