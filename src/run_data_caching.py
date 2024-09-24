@@ -7,7 +7,7 @@ from data import DataGenerator
 
 
 def cache_data() -> None:
-    dg = DataGenerator(memory_cache=False, disk_cache=False)
+    dg = DataGenerator(memory_cache=False, disk_cache=True)
     
     # Remove old cache to force recaching
     print('Removing cache...')
@@ -18,9 +18,9 @@ def cache_data() -> None:
     dg.train_list = dg.get_patient_list(dg.train_directory)
     print('Saving new cache...')
     
-    for i in dg.train_affine_generator(augment=False, verbose=1):
+    for i in dg.train_generator(augment=False, verbose=1):
         continue
-    for i in dg.test_affine_generator(verbose=1):
+    for i in dg.test_generator(verbose=1):
         continue
 
 
