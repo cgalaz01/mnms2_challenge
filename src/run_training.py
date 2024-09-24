@@ -36,7 +36,7 @@ def get_callbacks(prefix: str, checkpoint_directory: str, hparams):
         monitor='loss',
         mode='min',
         save_freq='epoch',
-        save_best_only=False)
+        save_best_only=True)
     
     log_dir = os.path.join('logs', 'fit', prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S')) + '/'
     
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         fp = hparams[hyper_parameters.HP_FLOATING_POINT]
         if fp == '16':
             policy = keras.mixed_precision.Policy('mixed_float16')
-            keras.mixed_precision.set_policy(policy)
+            keras.mixed_precision.set_global_policy(policy)
     
         use_xla = hparams[hyper_parameters.HP_XLA]
         if use_xla:
@@ -155,16 +155,16 @@ if __name__ == '__main__':
         model.compile(
             optimizer=optimizer,
             loss=loss,
-            metrics=[soft_dice],
+            metrics=[soft_dice, soft_dice],
             loss_weights={'output_sa': sa_weights,
                           'output_la': la_weights})
-        
         
         epochs = hparams[hyper_parameters.HP_EPOCHS]
         prefix = 'multi_stage_model'
         checkpoint_path = os.path.join('tmp', 'checkpoint',
                                        prefix + datetime.datetime.now().strftime('_%Y%m%d-%H%M%S'),
-                                       '{epoch:04d}') + '/'
+                                       'model.weights.h5')
+    
         model.fit(x=train_gen,
                   validation_data=validation_gen,
                   epochs=epochs,

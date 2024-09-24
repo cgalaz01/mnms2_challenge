@@ -8,12 +8,12 @@ class FocalLoss(tf.keras.losses.Loss):
                  from_logits: bool = False,
                  alpha: float = 0.25,
                  gamma: float = 2.0,
-                 reduction: str = tf.keras.losses.Reduction.NONE,
+                 reduction: str = tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE,
                  name: str = "sigmoid_focal_crossentropy"):
         self._from_logits = from_logits
         self._alpha = alpha
         self._gamma = gamma
-        super(TverskyLoss, self).__init__(reduction=reduction, name=name)
+        super(FocalLoss, self).__init__(reduction=reduction, name=name)
         
     
     def call(self, y_true, y_pred):
@@ -28,9 +28,13 @@ class FocalLoss(tf.keras.losses.Loss):
             if self._gamma and self._gamma < 0:
                 raise ValueError("Value of gamma should be greater than or equal to zero.")
 
-            y_pred = tf.convert_to_tensor(y_pred)
-            y_true = tf.cast(y_true, dtype=y_pred.dtype)
+            y_true = tf.cast(y_true, dtype=tf.float32)
+            y_pred = tf.cast(y_pred, dtype=tf.float32)
 
+            dim = tf.reduce_prod(tf.shape(y_true)[1:])
+            y_true = tf.reshape(y_true, [-1, dim])
+            y_pred = tf.reshape(y_pred, [-1, dim])
+            
             # Get the cross_entropy for each entry
             ce = tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=self._from_logits)
 
@@ -85,7 +89,7 @@ class TverskyLoss(tf.keras.losses.Loss):
     def __init__(self,
                  alpha,
                  beta,
-                 reduction=tf.keras.losses.Reduction.AUTO,
+                 reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE,
                  name=None):
         """Initializes `TverskyLoss`.
         Args:
@@ -205,8 +209,8 @@ def combined_loss(y_true, y_pred):
     y_pred = tf.cast(y_pred, tf.float32)
             
     focal_loss = FocalLoss(from_logits=True, alpha=0.25, gamma=2.0,
-                           reduction=tf.keras.losses.Reduction.AUTO)
-    dice_loss = SoftDiceLoss(reduction=tf.keras.losses.Reduction.AUTO)
+                           reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
+    dice_loss = SoftDiceLoss(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
     
     total_loss = focal_loss(y_true, y_pred) + dice_loss(y_true, y_pred)
     

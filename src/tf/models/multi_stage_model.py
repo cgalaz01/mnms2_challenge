@@ -205,28 +205,28 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
                                       dropout_rate)
         
     # Create 'channel' axis that will be carried over when unstacking
-    x_sa = tf.expand_dims(x_sa, axis=-1)
+    x_sa = layers.Lambda(lambda x: tf.expand_dims(x, axis=-1))(x_sa)
     # Break the 3D image into single 2D slice input
-    x_sa_list = tf.unstack(x_sa, axis=-2)
+    x_sa_list = layers.Lambda(lambda x: tf.unstack(x, axis=-2))(x_sa)
     # Pass each slice to the shared layer    
     for i in range(len(x_sa_list)):
         x_sa_list[i] = shared_layers(x_sa_list[i])
     
     # Stack back into a 3D image (W, H, D, C)
-    x_sa = tf.stack(x_sa_list, axis=-2)
+    x_sa = layers.Lambda(lambda x: tf.stack(x, axis=-2))(x_sa_list)
     x_sa_skip = x_sa
     
     # Short-Axis branch
     x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='sa_conv3d_1_1')(x_sa)
+                          name='sa_conv3d_1_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_1_2')(x_sa)
     
     x_sa = layers.Conv3D(64, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='sa_conv3d_2_1')(x_sa)
+                          name='sa_conv3d_2_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_2_2')(x_sa)
     
     x_sa = layers.Conv3D(128, (3, 3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='sa_conv3d_3_1')(x_sa)
+                          name='sa_conv3d_3_1')(x_sa)
     x_sa = layers.Activation('relu', name='sa_activation_3_2')(x_sa)
 
     x_sa = layers.Add(name='sa_add_4_1')([x_sa, x_sa_skip])
@@ -242,33 +242,33 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
     
     # Long-Axis branch
     x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_1_1')(x_la)
+                          name='la_conv2d_1_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_1_2')(x_la)
     
     x_la = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_2_1')(x_la)
+                          name='la_conv2d_2_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_2_2')(x_la)
     
     x_la = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_3_1')(x_la)
+                          name='la_conv2d_3_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_3_2')(x_la)
       
     x_la = layers.Add(name='la_add_4_1')([x_la, x_la_skip])
     
     x_la = layers.Conv2D(num_classes, (1, 1), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_5_1')(x_la)
+                          name='la_conv2d_5_1')(x_la)
     
     # output_sa or x_sa as input to spatial transformer
     x_la_t = spatial_target_transformer(output_sa, input_sa_affine, input_la_affine,
                                         sa_input_shape, la_input_shape)
     
-    # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
+    # # Reshape from 3d to 2d (depth size is expected to be 1 after the spatial transformer)
     x_la_t = layers.Reshape((la_input_shape[0], la_input_shape[1], -1))(x_la_t)
 
     x_la = layers.Concatenate(name='la_concatenate')([x_la, x_la_t])
     
     x_la = layers.Conv2D(32, (3, 3), padding='same', kernel_initializer=kernel_initializer,
-                         name='la_conv2d_6_1')(x_la)
+                          name='la_conv2d_6_1')(x_la)
     x_la = layers.Activation(activation, name='la_activation_6_2')(x_la)
     
     output_la = layers.Conv2D(num_classes, (1, 1), padding='same',
@@ -276,7 +276,13 @@ def get_model(sa_input_shape, la_input_shape, num_classes, activation,
                               bias_initializer=keras.initializers.Constant(bias_la),
                               name='output_la')(x_la)
     
-    model = keras.Model([input_sa, input_la, input_sa_affine, input_la_affine],
-                        [output_sa, output_la])
+    model = keras.Model(inputs={'input_sa': input_sa, 'input_la': input_la,
+                                'input_sa_affine': input_sa_affine, 'input_la_affine': input_la_affine},
+                        outputs={'output_sa': output_sa, 'output_la': output_la})
     
     return model
+
+if __name__ == '__main__':
+    m = get_model((192, 192, 17), (192, 192, 17), 1, activation='relu',
+                  kernel_initializer='lecun_normal', dropout_rate=0.0)
+    m.summary()

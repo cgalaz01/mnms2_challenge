@@ -1,20 +1,15 @@
-import types
-
 import tensorflow as tf
+from tensorflow.keras import layers
 from tensorflow.keras.layers import Layer
 
-# Workaround to prevent loading modules not needed, as they are not updated to
-# support latest version of tensorflow
+# Workaround to handle neurite not being maintained so that latest tensorflow
+# version can be run
+# Note: we can use this are we are only using a very small part of voxelmorph
 from unittest.mock import patch
-mock_networks = types.ModuleType("networks")
-mock_loss = types.ModuleType("losses")
-mock_neurite = types.ModuleType("neurite")
-mock_neurite.__version__ = "0.2"  # Mock version to satisfy the check in voxelmorph
-mock_neurite.modelio = types.ModuleType("modelio")
-mock_neurite.modelio.LoadableModel = tf.keras.Model  # Replace LoadableModel with tf.keras.Model
-with patch.dict('sys.modules', {'neurite': mock_neurite, 'voxelmorph.tf.networks': mock_networks,
-                                'voxelmorph.tf.losses': mock_loss}):
+with patch.dict('sys.modules', {'tensorflow.keras.losses.mean_absolute_error': tf.keras.losses.MAE,
+                                'tensorflow.keras.losses.mean_squared_error': tf.keras.losses.MSE}):
     from voxelmorph.tf.layers import SpatialTransformer
+
 
 
 class TargetAffineLayer(Layer):
@@ -109,16 +104,16 @@ def spatial_target_transformer(x, affine_matrix, target_affine_matrix,
     affine = TargetAffineLayer()([affine_matrix, target_affine_matrix])
     
     x = TargetShapePad(image_shape, target_image_shape)(x)
-    
+
     original_dtype = x.dtype
-    x = tf.cast(x, dtype=tf.float32)
+    x = layers.Lambda(lambda x: tf.cast(x, dtype=tf.float32))(x)
     x = SpatialTransformer(interp_method='linear',
                            indexing='ij',
-                           add_identity=False,
+                           single_transform=False,
                            shift_center=False,
                            fill_value=0.0,
-                           dtype=tf.float32)([x, affine])
-    x = tf.cast(x, dtype=original_dtype)
+                           dtype=tf.float32)([x, affine[:, :3, :]])
+    x = layers.Lambda(lambda x: tf.cast(x, dtype=original_dtype))(x)
     
     x = TargetShapeCrop(image_shape, target_image_shape)(x)
     
