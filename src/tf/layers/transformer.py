@@ -1,7 +1,20 @@
+import types
+
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from voxelmorph.tf.layers import SpatialTransformer
+# Workaround to prevent loading modules not needed, as they are not updated to
+# support latest version of tensorflow
+from unittest.mock import patch
+mock_networks = types.ModuleType("networks")
+mock_loss = types.ModuleType("losses")
+mock_neurite = types.ModuleType("neurite")
+mock_neurite.__version__ = "0.2"  # Mock version to satisfy the check in voxelmorph
+mock_neurite.modelio = types.ModuleType("modelio")
+mock_neurite.modelio.LoadableModel = tf.keras.Model  # Replace LoadableModel with tf.keras.Model
+with patch.dict('sys.modules', {'neurite': mock_neurite, 'voxelmorph.tf.networks': mock_networks,
+                                'voxelmorph.tf.losses': mock_loss}):
+    from voxelmorph.tf.layers import SpatialTransformer
 
 
 class TargetAffineLayer(Layer):

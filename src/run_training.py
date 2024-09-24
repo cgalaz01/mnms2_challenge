@@ -20,7 +20,7 @@ from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
 from tf.losses.loss import FocalLoss, TverskyLoss, combined_loss
 from tf.metrics.metrics import soft_dice
-from run_test_inference import test_prediction
+#from run_test_inference import test_prediction
 
 
 __SEED = 1456
@@ -95,9 +95,9 @@ if __name__ == '__main__':
         keras.backend.clear_session()
         
         fp = hparams[hyper_parameters.HP_FLOATING_POINT]
-        if fp == '16':
-            policy = keras.mixed_precision.experimental.Policy('mixed_float16')
-            keras.mixed_precision.experimental.set_policy(policy)
+        #if fp == '16':
+        #    policy = keras.mixed_precision.experimental.Policy('mixed_float16')
+        #    keras.mixed_precision.experimental.set_policy(policy)
     
         use_xla = hparams[hyper_parameters.HP_XLA]
         if use_xla:
@@ -172,4 +172,4 @@ if __name__ == '__main__':
                   verbose=1)
         
         visual_summary(model, data_gen, 'tmp/output_results')
-        test_prediction(model)
+        #test_prediction(model)
