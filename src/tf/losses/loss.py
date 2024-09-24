@@ -1,6 +1,72 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
 
+
+class FocalLoss(tf.keras.losses.Loss):
+    """Implements the Focal loss (from tensorflow-addons)
+    """
+    def __init__(self,
+                 from_logits: bool = False,
+                 alpha: float = 0.25,
+                 gamma: float = 2.0,
+                 reduction: str = tf.keras.losses.Reduction.NONE,
+                 name: str = "sigmoid_focal_crossentropy"):
+        self._from_logits = from_logits
+        self._alpha = alpha
+        self._gamma = gamma
+        super(TverskyLoss, self).__init__(reduction=reduction, name=name)
+        
+    
+    def call(self, y_true, y_pred):
+        """Invokes the `FocalLoss`.
+        Args:
+          y_true: A tensor of size [batch, ..., num_classes]
+          y_pred: A tensor of size [batch, ..., num_classes]
+        Returns:
+          Summed loss float `Tensor`.
+        """
+        with tf.name_scope('focal_loss'):
+            if self._gamma and self._gamma < 0:
+                raise ValueError("Value of gamma should be greater than or equal to zero.")
+
+            y_pred = tf.convert_to_tensor(y_pred)
+            y_true = tf.cast(y_true, dtype=y_pred.dtype)
+
+            # Get the cross_entropy for each entry
+            ce = tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=self._from_logits)
+
+            # If logits are provided then convert the predictions into probabilities
+            if self._from_logits:
+                pred_prob = tf.sigmoid(y_pred)
+            else:
+                pred_prob = y_pred
+
+            p_t = (y_true * pred_prob) + ((1 - y_true) * (1 - pred_prob))
+            alpha_factor = 1.0
+            modulating_factor = 1.0
+
+            if self._alpha:
+                self._alpha = tf.cast(self._alpha, dtype=y_true.dtype)
+                alpha_factor = y_true * self._alpha + (1 - y_true) * (1 - self._alpha)
+
+            if self._gamma:
+                self._gamma = tf.cast(self._gamma, dtype=y_true.dtype)
+                modulating_factor = tf.pow((1.0 - p_t), self._gamma)
+
+            # compute the final loss and return
+            loss = tf.reduce_sum(alpha_factor * modulating_factor * ce, axis=-1)
+        
+        return loss
+    
+  
+    def get_config(self):
+        config = {
+            'from_logits': self._from_logits,
+            'alpha': self._alpha,
+            'gamma': self._gamma
+        }
+        base_config = super(FocalLoss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+    
 
 
 class TverskyLoss(tf.keras.losses.Loss):
@@ -138,11 +204,10 @@ def combined_loss(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
             
-    focal_loss = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,
-                                                     alpha=0.25,
-                                                     gamma=2.0,
-                                                     reduction=tf.keras.losses.Reduction.AUTO)
+    focal_loss = FocalLoss(from_logits=True, alpha=0.25, gamma=2.0,
+                           reduction=tf.keras.losses.Reduction.AUTO)
     dice_loss = SoftDiceLoss(reduction=tf.keras.losses.Reduction.AUTO)
+    
     total_loss = focal_loss(y_true, y_pred) + dice_loss(y_true, y_pred)
     
     return total_loss

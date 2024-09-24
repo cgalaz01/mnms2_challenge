@@ -9,6 +9,5 @@ dependencies:
   - pip
   - pip:
       - tensorflow[and-cuda]==2.17.0
-      - tensorflow-addons==0.23.0
-      - simpleitk==2.4.0
+      - simpleitk==2.0.2
       - voxelmorph==0.2
