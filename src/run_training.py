@@ -1,4 +1,5 @@
 import os
+#os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 from typing import Union
 from pathlib import Path
@@ -18,7 +19,7 @@ import matplotlib.pyplot as plt
 from configuration import HyperParameters
 from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
-from tf.losses.loss import FocalLoss, TverskyLoss, combined_loss
+from tf.losses.loss import get_focal_loss, get_tversky_loss, combined_loss
 from tf.metrics.metrics import soft_dice
 #from run_test_inference import test_prediction
 
@@ -134,10 +135,9 @@ if __name__ == '__main__':
             
         if hparams[hyper_parameters.HP_LOSS] == 'focal':
             # α should be decreased slightly as γ is increased
-            loss = FocalLoss(from_logits=True, alpha=0.25, gamma=2.0,
-                             reduction=tf.keras.losses.Reduction.AUTO)
+            loss = get_focal_loss()
         elif hparams[hyper_parameters.HP_LOSS] == 'tversky':
-            loss = TverskyLoss(0.5, 0.5)
+            loss = get_tversky_loss()
         elif hparams[hyper_parameters.HP_LOSS] == 'combined':
             loss = combined_loss
         elif hparams[hyper_parameters.HP_LOSS] == 'crossentropy':
