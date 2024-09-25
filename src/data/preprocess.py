@@ -113,7 +113,7 @@ class RegionOfInterest():
     
     @staticmethod
     def detect_roi_la(sitk_ed_image: sitk.Image, sitk_es_image: sitk.Image,
-                      debug: bool = True) -> Tuple[int]:
+                      debug: bool = False) -> Tuple[int]:
         ed_image = sitk.GetArrayFromImage(sitk_ed_image)
         es_image = sitk.GetArrayFromImage(sitk_es_image)
         ed_image = np.swapaxes(ed_image, 0, -1)
