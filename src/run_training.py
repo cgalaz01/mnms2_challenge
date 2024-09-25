@@ -172,4 +172,4 @@ if __name__ == '__main__':
                   verbose=1)
         
         visual_summary(model, data_gen, 'tmp/output_results')
-        md.test_model_prediction(model)
+        md.test_prediction(model, None, None)
