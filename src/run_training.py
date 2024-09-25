@@ -21,7 +21,7 @@ from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
 from tf.losses.loss import get_focal_loss, get_tversky_loss, combined_loss
 from tf.metrics.metrics import soft_dice
-from model import model as md
+from run_inference import model as md
 
 
 __SEED = 1456
