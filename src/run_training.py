@@ -21,7 +21,7 @@ from data import TensorFlowDataGenerator, DataGenerator
 from tf.models import multi_stage_model
 from tf.losses.loss import get_focal_loss, get_tversky_loss, combined_loss
 from tf.metrics.metrics import soft_dice
-#from run_test_inference import test_prediction
+from model import model as md
 
 
 __SEED = 1456
@@ -172,4 +172,4 @@ if __name__ == '__main__':
                   verbose=1)
         
         visual_summary(model, data_gen, 'tmp/output_results')
-        #test_prediction(model)
+        md.test_model_prediction(model)
