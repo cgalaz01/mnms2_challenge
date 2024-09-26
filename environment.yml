@@ -2,7 +2,7 @@ name: mnms2
 channels:
   - defaults
 dependencies:
-  - python==3.10.11
+  - python==3.9
   - scikit-image==0.24.0
   - scikit-learn==1.5.1
   - matplotlib==3.9.2
