@@ -21,7 +21,8 @@ class model:
         '''
         IMPORTANT: Initializes the model wrapper WITHOUT PARAMETERS, it will be called as model()
         '''
-        self.model_weights_path = os.path.join('model_weights', 'multi_stage_model') + '/'
+        self.model_weights_path = os.path.join('model_weights', 'multi_stage_model',
+                                               'model.weights.h5')
 
 
     def load_model(self) -> tf.keras.Model:
