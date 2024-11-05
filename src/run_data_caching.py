@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+from collections import deque
 import shutil
 
 from data import DataGenerator
@@ -18,10 +19,9 @@ def cache_data() -> None:
     dg.train_list = dg.get_patient_list(dg.train_directory)
     print('Saving new cache...')
     
-    for i in dg.train_generator(augment=False, verbose=1):
-        continue
-    for i in dg.test_generator(verbose=1):
-        continue
+    deque(dg.train_generator(augment=False, verbose=1), maxlen=0)
+    deque(dg.validation_generator(verbose=1), maxlen=0)
+    deque(dg.test_generator(verbose=1), maxlen=0)
 
 
 if __name__ == '__main__':
