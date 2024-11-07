@@ -55,7 +55,7 @@ def visual_summary(model: keras.Model, generator: DataGenerator,
     threshold = 0
     
     i = 0
-    for data in generator.validation_affine_generator():
+    for data in generator.validation_generator():
         # Add batch dimension to each of the input values
         for key, value in data[0].items():
             data[0][key] = np.expand_dims(value, 0)

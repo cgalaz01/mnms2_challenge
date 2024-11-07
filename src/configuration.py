@@ -30,7 +30,6 @@ class HyperParameters():
         
         self.parameter_dict = {}
         self.parameter_dict[self.HP_FLOATING_POINT] = self.HP_FLOATING_POINT.domain.values
-        self.parameter_dict[self.HP_XLA] = self.HP_XLA.domain.values
         self.parameter_dict[self.HP_EPOCHS] = self.HP_EPOCHS.domain.values
         self.parameter_dict[self.HP_BATCH_SIZE] = self.HP_BATCH_SIZE.domain.values
         self.parameter_dict[self.HP_LEANRING_RATE] = self.HP_LEANRING_RATE.domain.values

@@ -1,4 +1,5 @@
 import os
+import gc
 
 from enum import Enum
 
@@ -528,7 +529,17 @@ class DataGenerator():
                 data[0]['input_la_affine'] = patient_data[OutputAffine.la_affine.value]
                 
         return output_data
-        
+    
+    
+    @staticmethod
+    def clear_data(data: Tuple[Tuple[Dict[str, np.ndarray]]]) -> None:
+        for i in range(len(data)):
+            for j in range(len(data[i])):
+                for key, array in data[i][j].items():
+                    del array
+                
+        del data
+    
 
     def generator(self, patient_directory: Union[str, Path], affine_matrix: bool,
                   has_gt: bool = True, augment: bool = False) -> Tuple[Dict[str, np.ndarray]]:
@@ -588,6 +599,8 @@ class DataGenerator():
             
             yield patient_data[0]   # End diastolic
             yield patient_data[1]   # End systolic
+            self.clear_data(patient_data)
+        gc.collect()
         
     
     def validation_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
@@ -598,7 +611,9 @@ class DataGenerator():
             
             yield patient_data[0]
             yield patient_data[1]
-            
+            self.clear_data(patient_data)
+        gc.collect()
+        
     
     def test_generator(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:
@@ -608,7 +623,9 @@ class DataGenerator():
             
             yield patient_data[0]
             yield patient_data[1]
-
+            self.clear_data(patient_data)
+        gc.collect()
+        
 
     def test_generator_inference(self, verbose: int = 0) -> Tuple[Dict[str, np.ndarray]]:
         for patient_directory in self.test_list:

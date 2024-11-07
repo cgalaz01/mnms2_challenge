@@ -14,7 +14,7 @@ class TensorFlowDataGenerator():
                             max_buffer_size: Union[int, None]=None,
                             floating_precision: str = '32') -> Tuple[tf.data.Dataset]:
         
-        buffer_size = len(dg.train_list) * 2
+        buffer_size = 20
         if max_buffer_size is not None:
             buffer_size = min(buffer_size, max_buffer_size)    
 
@@ -24,7 +24,7 @@ class TensorFlowDataGenerator():
                                                          output_shapes=output_shapes)
         train_generator = train_generator.shuffle(buffer_size=buffer_size,
                                                   seed=4875,
-                                                  reshuffle_each_iteration=True
+                                                  reshuffle_each_iteration=False
                                                   ).batch(batch_size).prefetch(2)
         
         generator_type = dg.validation_generator
